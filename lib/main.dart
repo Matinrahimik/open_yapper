@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'theme.dart';
 
 void main() {
   runApp(const MainApp());
 }
+
+const _railExtendedKey = 'navigation_rail_extended';
 
 class MainApp extends StatelessWidget {
   const MainApp({super.key});
@@ -21,7 +24,7 @@ class MainApp extends StatelessWidget {
   }
 }
 
-enum DrawerSection { home, customization }
+enum RailDestination { home, customization }
 
 class MainScaffold extends StatefulWidget {
   const MainScaffold({super.key});
@@ -31,54 +34,89 @@ class MainScaffold extends StatefulWidget {
 }
 
 class _MainScaffoldState extends State<MainScaffold> {
-  DrawerSection _selectedSection = DrawerSection.home;
+  RailDestination _selectedDestination = RailDestination.home;
+  bool _railExtended = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRailState();
+  }
+
+  Future<void> _loadRailState() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _railExtended = prefs.getBool(_railExtendedKey) ?? true;
+    });
+  }
+
+  Future<void> _saveRailState(bool extended) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_railExtendedKey, extended);
+  }
+
+  void _toggleRail() {
+    setState(() {
+      _railExtended = !_railExtended;
+      _saveRailState(_railExtended);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_selectedSection == DrawerSection.home ? 'Home' : 'Customization'),
-      ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primaryContainer,
+      body: Row(
+        children: [
+          NavigationRail(
+            extended: _railExtended,
+            leading: IconButton(
+              icon: Icon(
+                _railExtended ? Icons.chevron_left : Icons.chevron_right,
               ),
-              child: Text(
-                'Settings',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.onPrimaryContainer,
-                    ),
+              onPressed: _toggleRail,
+              tooltip: _railExtended ? 'Minimize' : 'Expand',
+            ),
+            destinations: const [
+              NavigationRailDestination(
+                icon: Icon(Icons.home_outlined),
+                selectedIcon: Icon(Icons.home),
+                label: Text('Home'),
               ),
+              NavigationRailDestination(
+                icon: Icon(Icons.tune_outlined),
+                selectedIcon: Icon(Icons.tune),
+                label: Text('Customization'),
+              ),
+            ],
+            selectedIndex: _selectedDestination.index,
+            onDestinationSelected: (index) {
+              setState(() {
+                _selectedDestination = RailDestination.values[index];
+              });
+            },
+          ),
+          const VerticalDivider(thickness: 1, width: 1),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                AppBar(
+                  title: Text(
+                    _selectedDestination == RailDestination.home
+                        ? 'Home'
+                        : 'Customization',
+                  ),
+                ),
+                Expanded(
+                  child: _selectedDestination == RailDestination.home
+                      ? const _HomeBody()
+                      : const _CustomizationBody(),
+                ),
+              ],
             ),
-            ListTile(
-              leading: const Icon(Icons.home_outlined),
-              title: const Text('Home'),
-              selected: _selectedSection == DrawerSection.home,
-              onTap: () {
-                setState(() => _selectedSection = DrawerSection.home);
-                Navigator.pop(context);
-              },
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.tune),
-              title: const Text('Customization'),
-              selected: _selectedSection == DrawerSection.customization,
-              onTap: () {
-                setState(() => _selectedSection = DrawerSection.customization);
-                Navigator.pop(context);
-              },
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
-      body: _selectedSection == DrawerSection.home
-          ? const _HomeBody()
-          : const _CustomizationBody(),
     );
   }
 }
