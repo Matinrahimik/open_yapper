@@ -6,10 +6,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 const _hotkeyStorageKey = 'record_hotkey';
 
-/// Default: Cmd+Shift+Space on macOS.
+/// Default: Cmd+Esc.
 HotKey get defaultRecordHotKey => HotKey(
-      key: PhysicalKeyboardKey.space,
-      modifiers: [HotKeyModifier.meta, HotKeyModifier.shift],
+      key: LogicalKeyboardKey.escape,
+      modifiers: [HotKeyModifier.meta],
       scope: HotKeyScope.system,
     );
 
@@ -22,6 +22,15 @@ HotKey _withSystemScope(HotKey hotKey) {
   );
 }
 
+bool _isInvalidHotKey(KeyboardKey key) {
+  if (key == PhysicalKeyboardKey.space) return true;
+  // Cmd+V conflicts with paste; use Cmd+Esc instead.
+  if (key == PhysicalKeyboardKey.keyV || key == LogicalKeyboardKey.keyV) {
+    return true;
+  }
+  return false;
+}
+
 Future<HotKey> loadRecordHotKey() async {
   try {
     final prefs = await SharedPreferences.getInstance();
@@ -29,7 +38,14 @@ Future<HotKey> loadRecordHotKey() async {
     if (jsonStr == null) return defaultRecordHotKey;
 
     final map = jsonDecode(jsonStr) as Map<String, dynamic>;
-    return _withSystemScope(HotKey.fromJson(map));
+    final hotKey = _withSystemScope(HotKey.fromJson(map));
+    // Space + system scope crashes on macOS (hotkey_manager #65). Use default instead.
+    // Cmd+V conflicts with paste; use Cmd+Esc instead.
+    if (_isInvalidHotKey(hotKey.key)) {
+      await prefs.remove(_hotkeyStorageKey);
+      return defaultRecordHotKey;
+    }
+    return hotKey;
   } catch (_) {
     return defaultRecordHotKey;
   }
@@ -37,6 +53,13 @@ Future<HotKey> loadRecordHotKey() async {
 
 Future<void> saveRecordHotKey(HotKey hotKey) async {
   try {
+    // Space + system scope crashes on macOS (hotkey_manager #65). Don't save.
+    // Cmd+V conflicts with paste; reject it and clear stored value so default (Cmd+Esc) is used.
+    if (_isInvalidHotKey(hotKey.key)) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_hotkeyStorageKey);
+      return;
+    }
     final normalized = _withSystemScope(hotKey);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_hotkeyStorageKey, jsonEncode(normalized.toJson()));

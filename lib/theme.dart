@@ -1,9 +1,21 @@
 import "package:flutter/material.dart";
 
+import 'theme/typography.dart';
+
 class MaterialTheme {
   final TextTheme textTheme;
 
   const MaterialTheme(this.textTheme);
+
+  /// Creates a MaterialTheme with M3 typography tokens.
+  static MaterialTheme withTypography({Color? bodyColor, Color? displayColor}) {
+    return MaterialTheme(
+      TypographyTokens.textTheme(
+        bodyColor: bodyColor,
+        displayColor: displayColor,
+      ),
+    );
+  }
 
   static ColorScheme lightScheme() {
     return const ColorScheme(

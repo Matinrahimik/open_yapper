@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>$(PRODUCT_NAME)</string>
+	<string>Open Yapper</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -26,11 +26,9 @@
 	<string>$(PRODUCT_COPYRIGHT)</string>
 	<key>NSMainNibFile</key>
 	<string>MainMenu</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Open Yapper needs microphone access for voice recording.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>Open Yapper needs microphone access for voice dictation.</string>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Open Yapper uses speech recognition to transcribe your voice into text.</string>
 </dict>
 </plist>

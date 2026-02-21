@@ -11,8 +11,11 @@ dependencies:
     sdk: flutter
   material_symbols_icons: ^4.2906.0
   shared_preferences: ^2.2.2
-  speech_to_text: ^7.3.0
+  record: ^6.0.0
+  audioplayers: ^6.0.0
+  path_provider: ^2.1.0
   hotkey_manager: ^0.2.3
+  http: ^1.2.0
 
 dev_dependencies:
   flutter_test:
@@ -21,3 +24,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  fonts:
+    - family: Haskoy
+      fonts:
+        - asset: assets/font/Haskoy-variable.ttf

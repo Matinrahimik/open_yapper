@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="open_yapper"
+        android:label="Open Yapper"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
