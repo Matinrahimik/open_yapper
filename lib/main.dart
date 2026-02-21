@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:material_symbols_icons/symbols.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'theme.dart';
@@ -80,26 +81,29 @@ class _MainScaffoldState extends State<MainScaffold> {
         children: [
           NavigationRail(
             extended: _railExtended,
-            leading: Padding(
-              padding: const EdgeInsets.only(left: 12),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: IconButton(
-                  icon: const Icon(Icons.view_sidebar),
+            leading: Row(
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                IconButton(
+                  icon: Icon(
+                    _railExtended
+                        ? Symbols.left_panel_close
+                        : Symbols.left_panel_open,
+                  ),
                   onPressed: _toggleRail,
                   tooltip: _railExtended ? 'Minimize' : 'Expand',
                 ),
-              ),
+              ],
             ),
             destinations: const [
               NavigationRailDestination(
-                icon: Icon(Icons.home_outlined),
-                selectedIcon: Icon(Icons.home),
+                icon: Icon(Symbols.home),
+                selectedIcon: Icon(Symbols.home, fill: 1),
                 label: Text('Home'),
               ),
               NavigationRailDestination(
-                icon: Icon(Icons.tune_outlined),
-                selectedIcon: Icon(Icons.tune),
+                icon: Icon(Symbols.tune),
+                selectedIcon: Icon(Symbols.tune, fill: 1),
                 label: Text('Customization'),
               ),
             ],
