@@ -132,7 +132,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   Icon(
                     Symbols.history,
                     size: 64,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurfaceVariant
+                        .withValues(alpha: 0.5),
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -141,9 +144,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Recordings will appear here after you stop a recording on the Home screen.',
+                    'Your voice interactions will appear here.',
                     textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                   ),
@@ -153,7 +156,51 @@ class _HistoryScreenState extends State<HistoryScreen> {
           );
         }
 
-        return ListView.builder(
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton.icon(
+                    onPressed: () async {
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Clear history'),
+                          content: const Text(
+                            'Remove all recordings from history? This cannot be undone.',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: const Text('Cancel'),
+                            ),
+                            FilledButton(
+                              onPressed: () => Navigator.pop(ctx, true),
+                              style: FilledButton.styleFrom(
+                                backgroundColor:
+                                    Theme.of(ctx).colorScheme.error,
+                              ),
+                              child: const Text('Clear'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirmed == true && mounted) {
+                        await widget.historyService.clearHistory();
+                      }
+                    },
+                    icon: const Icon(Symbols.delete_outline, size: 18),
+                    label: const Text('Clear'),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
           padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
           itemCount: entries.length,
           itemBuilder: (context, index) {
@@ -193,28 +240,80 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               SelectableText(
-                                entry.transcription != null &&
-                                        entry.transcription!.isNotEmpty
-                                    ? entry.transcription!
-                                    : 'No transcription',
+                                entry.displayText.isNotEmpty
+                                    ? entry.displayText
+                                    : 'Audio input',
                                 style: Theme.of(context).textTheme.bodyMedium,
+                                maxLines: 2,
                               ),
+                              if (entry.transcription != null &&
+                                  entry.transcription != entry.response &&
+                                  entry.transcription!.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Text(
+                                    entry.transcription!,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant
+                                              .withValues(alpha: 0.6),
+                                        ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
                               const SizedBox(height: 4),
-                              Text(
-                                _formatDate(entry.recordedAt),
-                                style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              Row(
+                                children: [
+                                  Text(
+                                    _formatDate(entry.recordedAt),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant,
+                                        ),
+                                  ),
+                                  if (entry.targetApp != null) ...[
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      '→ ${entry.targetApp}',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant
+                                                .withValues(alpha: 0.6),
+                                          ),
                                     ),
+                                  ],
+                                  if (entry.durationSeconds != null) ...[
+                                    const SizedBox(width: 8),
+                                    _Chip(
+                                        '${entry.durationSeconds!.toStringAsFixed(1)}s'),
+                                  ],
+                                  if (entry.model != null) ...[
+                                    const SizedBox(width: 4),
+                                    _Chip(entry.model!),
+                                  ],
+                                ],
                               ),
                             ],
                           ),
                         ),
-                        if (entry.transcription != null &&
-                            entry.transcription!.isNotEmpty)
+                        if (entry.displayText.isNotEmpty)
                           IconButton(
                             onPressed: () {
                               Clipboard.setData(ClipboardData(
-                                text: entry.transcription!,
+                                text: entry.displayText,
                               ));
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
@@ -245,8 +344,32 @@ class _HistoryScreenState extends State<HistoryScreen> {
               ),
             );
           },
+        ),
+            ),
+          ],
         );
       },
+    );
+  }
+}
+
+class _Chip extends StatelessWidget {
+  const _Chip(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall,
+      ),
     );
   }
 }

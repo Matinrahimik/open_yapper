@@ -16,19 +16,19 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: recordingService,
-        builder: (context, _) {
-          if (recordingService.initError != null) {
-            return _ErrorContent(
-              message: 'Recording error: ${recordingService.initError}',
-            );
-          }
+      builder: (context, _) {
+        if (recordingService.initError != null) {
+          return _ErrorContent(
+            message: 'Recording error: ${recordingService.initError}',
+          );
+        }
 
-          if (!recordingService.hasPermission) {
-            return _PermissionContent();
-          }
+        if (!recordingService.hasPermission) {
+          return _PermissionContent();
+        }
 
-          return _RecordingContent(recordingService: recordingService);
-        },
+        return _RecordingContent(recordingService: recordingService);
+      },
     );
   }
 }
@@ -98,8 +98,10 @@ class _RecordingContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasRecording = recordingService.hasRecording;
+    final theme = Theme.of(context);
+    final hasRecording = recordingService.latestEntry != null;
     final isRecording = recordingService.isRecording;
+    final isProcessing = recordingService.isProcessing;
     final isPlaying = recordingService.isPlaying;
 
     return Padding(
@@ -112,23 +114,121 @@ class _RecordingContent extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  if (isRecording)
-                    Text(
-                      'Recording...',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    )
-                  else if (hasRecording)
-                    _TranscriptionDisplay(
-                      transcription: recordingService.latestEntry?.transcription,
-                    )
-                  else
-                    Text(
-                      'Press hotkey or tap record to capture your voice',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    child: Icon(
+                      isRecording
+                          ? Symbols.mic
+                          : isProcessing
+                              ? Symbols.psychology
+                              : Symbols.mic_none,
+                      size: 64,
+                      color: isRecording
+                          ? theme.colorScheme.error
+                          : isProcessing
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.4,
+                                ),
                     ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    recordingService.statusText,
+                    style: theme.textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Press ⌥ Space anywhere to start recording',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.5,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  if (recordingService.lastError != null) ...[
+                    Container(
+                      constraints: const BoxConstraints(maxWidth: 500),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.error.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Symbols.warning_amber,
+                            color: theme.colorScheme.error,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              recordingService.lastError!,
+                              style: theme.textTheme.bodyMedium,
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => recordingService.clearLastError(),
+                            child: Text(
+                              'Dismiss',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                  if (recordingService.latestEntry != null) ...[
+                    Container(
+                      constraints: const BoxConstraints(maxWidth: 500),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                'Last Interaction',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant
+                                      .withValues(alpha: 0.4),
+                                ),
+                              ),
+                              const Spacer(),
+                              if (recordingService.latestEntry?.targetApp !=
+                                  null)
+                                Text(
+                                  '→ ${recordingService.latestEntry!.targetApp}',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant
+                                        .withValues(alpha: 0.3),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              recordingService.latestEntry!.displayText,
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodyLarge,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -149,20 +249,22 @@ class _RecordingContent extends StatelessWidget {
                       label: Text(isPlaying ? 'Stop' : 'Play'),
                     ),
                     const SizedBox(width: 8),
-                    if (recordingService.latestEntry?.transcription != null)
+                    if (recordingService.latestEntry?.displayText.isNotEmpty ==
+                        true)
                       TextButton.icon(
                         onPressed: () {
                           Clipboard.setData(ClipboardData(
-                            text: recordingService.latestEntry!.transcription!,
+                            text: recordingService.latestEntry!.displayText,
                           ));
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('Copied to clipboard')),
                           );
                         },
-                        icon: Icon(Symbols.content_copy, size: 18),
+                        icon: const Icon(Symbols.content_copy, size: 18),
                         label: const Text('Copy'),
                       ),
-                    if (recordingService.latestEntry?.transcription != null)
+                    if (recordingService.latestEntry?.displayText.isNotEmpty ==
+                        true)
                       const SizedBox(width: 8),
                     TextButton.icon(
                       onPressed: recordingService.clearRecording,
@@ -177,6 +279,7 @@ class _RecordingContent extends StatelessWidget {
                 duration: const Duration(milliseconds: 200),
                 child: _RecordButton(
                   isRecording: isRecording,
+                  isProcessing: isProcessing,
                   onPressed: recordingService.toggleRecording,
                 ),
               ),
@@ -188,70 +291,15 @@ class _RecordingContent extends StatelessWidget {
   }
 }
 
-class _TranscriptionDisplay extends StatelessWidget {
-  const _TranscriptionDisplay({this.transcription});
-
-  final String? transcription;
-
-  @override
-  Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 560),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (transcription != null && transcription!.isNotEmpty) ...[
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: SelectableText(
-                transcription!,
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Press play to listen back',
-              style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-            ),
-          ] else ...[
-            Icon(
-              Symbols.audio_file,
-              size: 64,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Transcribing...',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Press play to listen back',
-              style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
 class _RecordButton extends StatefulWidget {
   const _RecordButton({
     required this.isRecording,
+    required this.isProcessing,
     required this.onPressed,
   });
 
   final bool isRecording;
+  final bool isProcessing;
   final VoidCallback onPressed;
 
   @override
@@ -293,12 +341,14 @@ class _RecordButtonState extends State<_RecordButton>
         );
       },
       child: FilledButton.icon(
-        onPressed: widget.onPressed,
+        onPressed: widget.isProcessing ? null : widget.onPressed,
         icon: Icon(
           widget.isRecording ? Symbols.stop : Symbols.mic,
           size: 24,
         ),
-        label: Text(widget.isRecording ? 'Stop' : 'Record'),
+        label: Text(
+          widget.isRecording ? 'Stop Recording' : 'Start Recording',
+        ),
         style: FilledButton.styleFrom(
           backgroundColor: widget.isRecording
               ? Theme.of(context).colorScheme.error

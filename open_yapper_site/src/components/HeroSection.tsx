@@ -21,7 +21,7 @@ export function HeroSection() {
         transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
       >
         <h1
-          className="flex flex-col items-center gap-1 text-[15vw] font-normal uppercase leading-[0.95] tracking-tight md:gap-2 md:text-[180px]"
+          className="flex flex-col items-center gap-1 text-[13vw] font-normal uppercase leading-[0.95] tracking-tight sm:text-[12vw] md:gap-2 md:text-[72px] lg:text-[120px] xl:text-[160px] 2xl:text-[180px]"
           style={{ fontFamily: "var(--font-anton), sans-serif" }}
         >
           <span className="whitespace-nowrap">Stop typing,</span>
@@ -56,7 +56,7 @@ export function HeroSection() {
 
         <motion.button
           type="button"
-          className="mt-12 flex items-center gap-2 rounded-full border-2 border-[#0A0A0A] bg-[#D4FF00] px-8 py-4 text-lg font-bold uppercase text-[#0A0A0A] shadow-[6px_6px_0_0_#0A0A0A] transition-all hover:-translate-y-1 hover:shadow-[8px_8px_0_0_#0A0A0A]"
+          className="mt-12 flex items-center gap-2 rounded-full border-2 border-[#0A0A0A] bg-[#D4FF00] px-8 py-4 text-lg font-medium uppercase tracking-[0.15em] text-[#0A0A0A] shadow-[6px_6px_0_0_#0A0A0A] transition-all hover:-translate-y-1 hover:shadow-[8px_8px_0_0_#0A0A0A]"
           style={{ fontFamily: "var(--font-anton), sans-serif" }}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}

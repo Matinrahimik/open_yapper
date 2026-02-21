@@ -27,8 +27,12 @@
 	<key>NSMainNibFile</key>
 	<string>MainMenu</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Open Yapper needs microphone access for voice recording.</string>
+	<string>OpenYapper needs microphone access to record your voice for AI processing.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>x-apple.systempreferences</string>
+	</array>
 </dict>
 </plist>

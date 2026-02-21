@@ -15,10 +15,12 @@ export default function OpenYapperPage() {
       style={{ fontFamily: "var(--font-space-grotesk), system-ui, sans-serif" }}
     >
       <Navbar />
-      <HeroSection />
-      <MarqueeStrip />
-      <DemoSection />
-      <Footer />
+      <main className="pt-[73px]">
+        <HeroSection />
+        <MarqueeStrip />
+        <DemoSection />
+        <Footer />
+      </main>
     </div>
   );
 }

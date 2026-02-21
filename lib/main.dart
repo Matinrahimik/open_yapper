@@ -1,47 +1,41 @@
 import 'package:flutter/material.dart';
-import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import 'screens/customization_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/home_screen.dart';
+import 'views/onboarding_view.dart';
 import 'widgets/screen_container.dart';
+import 'services/native_bridge.dart';
 import 'services/recording_history_service.dart';
 import 'services/recording_service.dart';
-import 'services/hotkey_storage.dart';
 import 'services/settings_storage.dart';
 import 'theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await hotKeyManager.unregisterAll();
 
   final historyService = RecordingHistoryService();
   final recordingService = RecordingService(
     historyService: historyService,
     loadApiKey: loadGeminiApiKey,
+    loadSystemPrompt: loadSystemPrompt,
+    loadModel: loadGeminiModel,
   );
 
-  final hotKey = await loadRecordHotKey();
-  await hotKeyManager.register(
-    hotKey,
-    keyDownHandler: (_) => recordingService.toggleRecording(),
-  );
+  NativeBridge.instance.setHotkeyCallback(() => recordingService.toggleRecording());
 
   runApp(
     MainApp(
       recordingService: recordingService,
       historyService: historyService,
-      onHotKeyChanged: () async {
-        await hotKeyManager.unregisterAll();
-        final newHotKey = await loadRecordHotKey();
-        await hotKeyManager.register(
-          newHotKey,
-          keyDownHandler: (_) => recordingService.toggleRecording(),
-        );
-      },
     ),
   );
+
+  // Start hotkey listener after the window is created and platform channel is ready
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    await NativeBridge.instance.startHotkeyListener();
+  });
 }
 
 class MainApp extends StatelessWidget {
@@ -49,12 +43,10 @@ class MainApp extends StatelessWidget {
     super.key,
     required this.recordingService,
     required this.historyService,
-    required this.onHotKeyChanged,
   });
 
   final RecordingService recordingService;
   final RecordingHistoryService historyService;
-  final VoidCallback onHotKeyChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -67,7 +59,6 @@ class MainApp extends StatelessWidget {
       home: MainScaffold(
         recordingService: recordingService,
         historyService: historyService,
-        onHotKeyChanged: onHotKeyChanged,
       ),
     );
   }
@@ -128,16 +119,16 @@ class AppSidebar extends StatelessWidget {
             icon: IconTheme(
               data: IconThemeData(color: colorScheme.onSurfaceVariant),
               child: const Tooltip(
-                message: 'Customization',
+                message: 'Settings',
                 child: Icon(Symbols.tune),
               ),
             ),
             selectedIcon: const Tooltip(
-              message: 'Customization',
+              message: 'Settings',
               child: Icon(Symbols.tune, fill: 1),
             ),
             label: Text(
-              'Customization',
+              'Settings',
               style: Theme.of(context).textTheme.labelLarge,
             ),
           ),
@@ -154,12 +145,10 @@ class MainScaffold extends StatefulWidget {
     super.key,
     required this.recordingService,
     required this.historyService,
-    required this.onHotKeyChanged,
   });
 
   final RecordingService recordingService;
   final RecordingHistoryService historyService;
-  final VoidCallback onHotKeyChanged;
 
   @override
   State<MainScaffold> createState() => _MainScaffoldState();
@@ -170,55 +159,64 @@ class _MainScaffoldState extends State<MainScaffold> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Row(
-        children: [
-          AppSidebar(
-            selectedIndex: _selectedDestination.index,
-            onDestinationSelected: (index) {
-              setState(() {
-                _selectedDestination = RailDestination.values[index];
-              });
-            },
-          ),
-          Expanded(
-            child: ScreenContainer(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 8),
-                  AppBar(
-                    title: Text(switch (_selectedDestination) {
-                      RailDestination.home => 'Home',
-                      RailDestination.history => 'History',
-                      RailDestination.customization => 'Customization',
-                    }, style: Theme.of(context).textTheme.headlineMedium),
-                    backgroundColor: Colors.transparent,
-                    elevation: 0,
-                    scrolledUnderElevation: 0,
-                    centerTitle: false,
-                    leadingWidth: 0,
-                    titleSpacing: 24,
-                  ),
-                  Expanded(
-                    child: switch (_selectedDestination) {
-                      RailDestination.home => HomeScreen(
-                        recordingService: widget.recordingService,
-                      ),
-                      RailDestination.history => HistoryScreen(
-                        historyService: widget.historyService,
-                      ),
-                      RailDestination.customization => CustomizationScreen(
-                        onHotKeyChanged: widget.onHotKeyChanged,
-                      ),
-                    },
-                  ),
-                ],
+    return Stack(
+      children: [
+        Scaffold(
+          body: Row(
+            children: [
+              AppSidebar(
+                selectedIndex: _selectedDestination.index,
+                onDestinationSelected: (index) {
+                  setState(() {
+                    _selectedDestination = RailDestination.values[index];
+                  });
+                },
               ),
-            ),
+              Expanded(
+                child: ScreenContainer(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: 8),
+                      AppBar(
+                        title: Text(
+                          switch (_selectedDestination) {
+                            RailDestination.home => 'Home',
+                            RailDestination.history => 'History',
+                            RailDestination.customization => 'Settings',
+                          },
+                          style: Theme.of(context).textTheme.headlineMedium,
+                        ),
+                        backgroundColor: Colors.transparent,
+                        elevation: 0,
+                        scrolledUnderElevation: 0,
+                        centerTitle: false,
+                        leadingWidth: 0,
+                        titleSpacing: 24,
+                      ),
+                      Expanded(
+                        child: switch (_selectedDestination) {
+                          RailDestination.home => HomeScreen(
+                              recordingService: widget.recordingService,
+                            ),
+                          RailDestination.history => HistoryScreen(
+                              historyService: widget.historyService,
+                            ),
+                          RailDestination.customization => CustomizationScreen(
+                              recordingService: widget.recordingService,
+                              onHotKeyChanged: () {},
+                            ),
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+        OnboardingView(recordingService: widget.recordingService),
+      ],
     );
   }
 }

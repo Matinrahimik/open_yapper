@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "lenis/dist/lenis.css";
 
 html {
   scroll-behavior: smooth;
@@ -30,7 +31,7 @@ html {
 }
 
 .animate-marquee {
-  animation: marquee 15s linear infinite;
+  animation: marquee 60s linear infinite;
 }
 
 ::selection {

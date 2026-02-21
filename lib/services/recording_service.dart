@@ -3,46 +3,80 @@ import 'dart:io';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
-
-import 'recording_history_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
-import 'transcription_service.dart';
+import 'gemini_service.dart';
+import 'native_bridge.dart';
+import 'recording_history_service.dart';
 
-/// Service that manages voice recording and playback.
+const _defaultSystemPrompt =
+    'You are a helpful assistant. The user is dictating via voice. '
+    'Respond with only the text to paste. No preamble, no markdown.';
+
+/// Service that manages voice recording, Gemini processing, and paste.
 class RecordingService extends ChangeNotifier {
   RecordingService({
     RecordingHistoryService? historyService,
-    TranscriptionService? transcriptionService,
     Future<String?> Function()? loadApiKey,
+    Future<String> Function()? loadSystemPrompt,
+    Future<String> Function()? loadModel,
   })  : _historyService = historyService,
-        _transcriptionService = transcriptionService ?? TranscriptionService(),
-        _loadApiKey = loadApiKey ?? (() async => null) {
+        _loadApiKey = loadApiKey ?? (() async => null),
+        _loadSystemPrompt = loadSystemPrompt ?? (() async => _defaultSystemPrompt),
+        _loadModel = loadModel ?? (() async => 'gemini-2.0-flash') {
     _init();
   }
 
   final RecordingHistoryService? _historyService;
-  final TranscriptionService _transcriptionService;
   final Future<String?> Function() _loadApiKey;
+  final Future<String> Function() _loadSystemPrompt;
+  final Future<String> Function() _loadModel;
 
   final AudioRecorder _recorder = AudioRecorder();
   final AudioPlayer _player = AudioPlayer();
 
+  final _native = NativeBridge.instance;
+
   bool _hasPermission = false;
+  bool _accessibilityGranted = false;
   bool _isRecording = false;
+  bool _isProcessing = false;
+  bool _isPasteSuccess = false;
   bool _isPlaying = false;
   String? _recordedFilePath;
   String? _initError;
+  String? _lastError;
   RecordingEntry? _latestEntry;
+  double _recordingDuration = 0;
+  double _currentAudioLevel = 0;
+
+  Timer? _durationTimer;
+  StreamSubscription<Amplitude>? _amplitudeSub;
 
   bool get hasPermission => _hasPermission;
+  bool get accessibilityGranted => _accessibilityGranted;
   bool get isRecording => _isRecording;
+  bool get isProcessing => _isProcessing;
+  bool get isPasteSuccess => _isPasteSuccess;
   bool get isPlaying => _isPlaying;
   String? get recordedFilePath => _recordedFilePath;
   String? get initError => _initError;
-  bool get hasRecording => _recordedFilePath != null && File(_recordedFilePath!).existsSync();
+  String? get lastError => _lastError;
+  bool get hasRecording =>
+      _recordedFilePath != null && File(_recordedFilePath!).existsSync();
   RecordingEntry? get latestEntry => _latestEntry;
+  double get recordingDuration => _recordingDuration;
+  double get currentAudioLevel => _currentAudioLevel;
+  bool get allPermissionsGranted => _hasPermission && _accessibilityGranted;
+
+  String get statusText {
+    if (_isRecording) return 'Recording...';
+    if (_isProcessing) return 'Processing with Gemini...';
+    if (_isPasteSuccess) return 'Pasted successfully!';
+    if (_lastError != null) return 'Error — see details below';
+    return 'Ready — Press ⌥ Space to record';
+  }
 
   Future<void> _init() async {
     try {
@@ -50,6 +84,7 @@ class RecordingService extends ChangeNotifier {
       if (!_hasPermission) {
         _initError = 'Microphone permission denied';
       }
+      _accessibilityGranted = await _native.checkAccessibility();
       _player.onPlayerComplete.listen((_) {
         _isPlaying = false;
         notifyListeners();
@@ -60,22 +95,81 @@ class RecordingService extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> checkPermissions() async {
+    _hasPermission = await _native.checkMicrophonePermission();
+    _accessibilityGranted = await _native.checkAccessibility();
+    notifyListeners();
+  }
+
+  Future<void> requestAccessibility() async {
+    await _native.requestAccessibility();
+    Timer.periodic(const Duration(seconds: 2), (timer) async {
+      final granted = await _native.checkAccessibility();
+      if (granted) {
+        _accessibilityGranted = true;
+        timer.cancel();
+        notifyListeners();
+      }
+    });
+  }
+
   Future<void> startRecording() async {
-    if (!_hasPermission || _isRecording) return;
+    if (!_hasPermission || _isRecording || _isProcessing) return;
+
+    final apiKey = await _loadApiKey();
+    if (apiKey == null || apiKey.trim().isEmpty) {
+      _lastError = 'Please set your Gemini API key in Settings.';
+      notifyListeners();
+      return;
+    }
+
+    if (!_accessibilityGranted) {
+      _lastError = 'Please grant Accessibility permission first.';
+      notifyListeners();
+      return;
+    }
 
     try {
       final dir = await getTemporaryDirectory();
-      final path = '${dir.path}/recording_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      final path =
+          '${dir.path}/openyapper_${DateTime.now().millisecondsSinceEpoch}.m4a';
 
       await _recorder.start(
-        const RecordConfig(encoder: AudioEncoder.aacLc),
+        const RecordConfig(
+          encoder: AudioEncoder.aacLc,
+          sampleRate: 16000,
+          numChannels: 1,
+          bitRate: 64000,
+        ),
         path: path,
       );
+
       _isRecording = true;
+      _isPasteSuccess = false;
+      _lastError = null;
       _recordedFilePath = null;
+      _recordingDuration = 0;
+      _currentAudioLevel = 0;
+
+      _amplitudeSub = _recorder
+          .onAmplitudeChanged(const Duration(milliseconds: 50))
+          .listen((amp) {
+        final normalized = ((amp.current + 50) / 50).clamp(0.0, 1.0);
+        _currentAudioLevel = normalized;
+        _native.updateOverlayLevel(normalized);
+        notifyListeners();
+      });
+
+      _durationTimer = Timer.periodic(const Duration(milliseconds: 100), (t) {
+        _recordingDuration += 0.1;
+        _native.updateOverlayDuration(_recordingDuration);
+        notifyListeners();
+      });
+
+      await _native.showRecordingOverlay();
       notifyListeners();
     } catch (e) {
-      _initError = e.toString();
+      _lastError = e.toString();
       notifyListeners();
     }
   }
@@ -83,33 +177,94 @@ class RecordingService extends ChangeNotifier {
   Future<void> stopRecording() async {
     if (!_isRecording) return;
 
-    try {
+    _durationTimer?.cancel();
+    _amplitudeSub?.cancel();
+
+    if (_recordingDuration < 0.5) {
       final path = await _recorder.stop();
       _isRecording = false;
-      _recordedFilePath = path;
-      if (path != null && _historyService != null) {
-        final entry = await _historyService.addRecording(path);
-        if (entry != null) {
-          _latestEntry = entry;
-          unawaited(_transcribeAndUpdate(entry));
-        }
+      await _native.dismissRecordingOverlay();
+      if (path != null) {
+        try {
+          await File(path).delete();
+        } catch (_) {}
       }
       notifyListeners();
-    } catch (e) {
-      _initError = e.toString();
-      _isRecording = false;
-      notifyListeners();
+      return;
     }
-  }
 
-  Future<void> _transcribeAndUpdate(RecordingEntry entry) async {
+    final path = await _recorder.stop();
+    final duration = _recordingDuration;
+    _isRecording = false;
+    _isProcessing = true;
+    notifyListeners();
+
+    await _native.updateOverlayState('processing');
+
+    final targetApp = await _native.getFrontmostAppName();
+    final systemPrompt = await _loadSystemPrompt();
+    final model = await _loadModel();
     final apiKey = await _loadApiKey();
-    if (apiKey == null || apiKey.trim().isEmpty) return;
 
-    final text = await _transcriptionService.transcribe(entry.filePath, apiKey);
-    if (text != null && text.isNotEmpty && _historyService != null) {
-      await _historyService.updateTranscription(entry.id, text);
-      _latestEntry = entry.copyWith(transcription: text);
+    if (path == null || apiKey == null || apiKey.trim().isEmpty) {
+      _isProcessing = false;
+      _lastError = 'Recording failed or no API key.';
+      await _native.dismissRecordingOverlay();
+      notifyListeners();
+      return;
+    }
+
+    try {
+      final gemini = GeminiService(apiKey: apiKey, model: model);
+      final response = await gemini.processAudio(
+        audioFilePath: path,
+        systemPrompt: systemPrompt,
+      );
+
+      await _native.pasteText(response, restoreClipboard: true);
+
+      _isProcessing = false;
+      _isPasteSuccess = true;
+      notifyListeners();
+
+      if (_historyService != null) {
+        final entry = await _historyService!.addRecording(
+          path,
+          durationSeconds: duration,
+        );
+        if (entry != null) {
+          await _historyService!.updateEntryResponse(
+            id: entry.id,
+            response: response,
+            targetApp: targetApp,
+            model: model,
+          );
+          _latestEntry = entry.copyWith(
+            response: response,
+            targetApp: targetApp,
+            model: model,
+            durationSeconds: duration,
+          );
+        }
+      }
+
+      await _native.updateOverlayState('success');
+
+      Future.delayed(const Duration(seconds: 2), () {
+        _isPasteSuccess = false;
+        notifyListeners();
+      });
+
+      try {
+        await File(path).delete();
+      } catch (_) {}
+    } catch (e) {
+      _isProcessing = false;
+      _lastError = e.toString();
+      await _native.dismissRecordingOverlay();
+      try {
+        await File(path).delete();
+      } catch (_) {}
       notifyListeners();
     }
   }
@@ -122,25 +277,25 @@ class RecordingService extends ChangeNotifier {
     }
   }
 
+  void clearLastError() {
+    _lastError = null;
+    notifyListeners();
+  }
+
   Future<void> play() async {
-    if (_recordedFilePath == null || !File(_recordedFilePath!).existsSync()) return;
     if (_isPlaying) return;
 
+    final path = _recordedFilePath ?? _latestEntry?.filePath;
+    if (path == null || !File(path).existsSync()) return;
+
     try {
-      await _player.play(DeviceFileSource(_recordedFilePath!));
+      await _player.play(DeviceFileSource(path));
       _isPlaying = true;
       notifyListeners();
     } catch (e) {
       _initError = e.toString();
       notifyListeners();
     }
-  }
-
-  Future<void> pause() async {
-    if (!_isPlaying) return;
-    await _player.pause();
-    _isPlaying = false;
-    notifyListeners();
   }
 
   Future<void> stop() async {
@@ -166,6 +321,8 @@ class RecordingService extends ChangeNotifier {
 
   @override
   void dispose() {
+    _durationTimer?.cancel();
+    _amplitudeSub?.cancel();
     unawaited(_recorder.dispose());
     _player.dispose();
     super.dispose();

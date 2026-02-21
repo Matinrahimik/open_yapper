@@ -12,6 +12,9 @@ class RecordingEntry {
     required this.recordedAt,
     this.durationSeconds,
     this.transcription,
+    this.response,
+    this.targetApp,
+    this.model,
   });
 
   final String id;
@@ -19,6 +22,12 @@ class RecordingEntry {
   final DateTime recordedAt;
   final double? durationSeconds;
   final String? transcription;
+  final String? response;
+  final String? targetApp;
+  final String? model;
+
+  /// Primary text to display (response from Gemini, or transcription for legacy).
+  String get displayText => response ?? transcription ?? '';
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -26,22 +35,42 @@ class RecordingEntry {
         'recordedAt': recordedAt.toIso8601String(),
         'durationSeconds': durationSeconds,
         'transcription': transcription,
+        'response': response,
+        'targetApp': targetApp,
+        'model': model,
       };
 
-  factory RecordingEntry.fromJson(Map<String, dynamic> json) => RecordingEntry(
-        id: json['id'] as String,
-        filePath: json['filePath'] as String,
-        recordedAt: DateTime.parse(json['recordedAt'] as String),
-        durationSeconds: (json['durationSeconds'] as num?)?.toDouble(),
-        transcription: json['transcription'] as String?,
-      );
+  factory RecordingEntry.fromJson(Map<String, dynamic> json) {
+    final transcription = json['transcription'] as String?;
+    final response = json['response'] as String?;
+    return RecordingEntry(
+      id: json['id'] as String,
+      filePath: json['filePath'] as String,
+      recordedAt: DateTime.parse(json['recordedAt'] as String),
+      durationSeconds: (json['durationSeconds'] as num?)?.toDouble(),
+      transcription: transcription,
+      response: response ?? transcription,
+      targetApp: json['targetApp'] as String?,
+      model: json['model'] as String? ?? 'gemini-flash-lite-latest',
+    );
+  }
 
-  RecordingEntry copyWith({String? transcription}) => RecordingEntry(
+  RecordingEntry copyWith({
+    String? transcription,
+    String? response,
+    String? targetApp,
+    String? model,
+    double? durationSeconds,
+  }) =>
+      RecordingEntry(
         id: id,
         filePath: filePath,
         recordedAt: recordedAt,
-        durationSeconds: durationSeconds,
+        durationSeconds: durationSeconds ?? this.durationSeconds,
         transcription: transcription ?? this.transcription,
+        response: response ?? this.response,
+        targetApp: targetApp ?? this.targetApp,
+        model: model ?? this.model,
       );
 }
 
@@ -101,7 +130,10 @@ class RecordingHistoryService extends ChangeNotifier {
   }
 
   /// Adds a recording to history by copying the source file.
-  Future<RecordingEntry?> addRecording(String sourcePath) async {
+  Future<RecordingEntry?> addRecording(
+    String sourcePath, {
+    double? durationSeconds,
+  }) async {
     final source = File(sourcePath);
     if (!await source.exists()) return null;
 
@@ -121,6 +153,7 @@ class RecordingHistoryService extends ChangeNotifier {
         id: id,
         filePath: destPath,
         recordedAt: DateTime.now(),
+        durationSeconds: durationSeconds,
       );
 
       await _ensureLoaded();
@@ -147,11 +180,44 @@ class RecordingHistoryService extends ChangeNotifier {
     await _save();
   }
 
+  /// Updates an entry with Gemini response, target app, and model.
+  Future<void> updateEntryResponse({
+    required String id,
+    required String response,
+    String? targetApp,
+    required String model,
+  }) async {
+    await _ensureLoaded();
+    final index = _entries.indexWhere((e) => e.id == id);
+    if (index < 0) return;
+    _entries[index] = _entries[index].copyWith(
+      response: response,
+      targetApp: targetApp,
+      model: model,
+    );
+    await _save();
+  }
+
+  /// Clears all history and deletes all recording files.
+  Future<void> clearHistory() async {
+    await _ensureLoaded();
+    for (final entry in _entries) {
+      try {
+        final file = File(entry.filePath);
+        if (await file.exists()) await file.delete();
+      } catch (_) {}
+    }
+    _entries.clear();
+    await _save();
+  }
+
   /// Removes a recording from history and deletes its file.
   Future<void> removeRecording(String id) async {
     await _ensureLoaded();
-    final entry = _entries.firstWhere((e) => e.id == id);
-    _entries.removeWhere((e) => e.id == id);
+    final index = _entries.indexWhere((e) => e.id == id);
+    if (index < 0) return;
+    final entry = _entries[index];
+    _entries.removeAt(index);
     try {
       final file = File(entry.filePath);
       if (await file.exists()) await file.delete();
