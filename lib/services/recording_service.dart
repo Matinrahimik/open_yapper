@@ -37,7 +37,7 @@ class RecordingService extends ChangeNotifier {
   bool _accessibilityGranted = false;
   bool _isRecording = false;
   bool _isProcessing = false;
-  bool _cancelRequested = false;
+  int _processingGeneration = 0;
   bool _isPasteSuccess = false;
   bool _isPlaying = false;
   String? _recordedFilePath;
@@ -195,10 +195,10 @@ class RecordingService extends ChangeNotifier {
 
     final path = await _recorder.stop();
     final duration = _recordingDuration;
+    final processingGeneration = ++_processingGeneration;
     _isRecording = false;
     await _native.setStopHotkeyEnabled(false);
     _isProcessing = true;
-    _cancelRequested = false;
     notifyListeners();
 
     await _native.updateOverlayState('processing');
@@ -232,7 +232,7 @@ class RecordingService extends ChangeNotifier {
         systemPrompt: systemPrompt,
       );
 
-      if (_cancelRequested) {
+      if (_isStaleProcessing(processingGeneration)) {
         _isProcessing = false;
         try {
           await File(path).delete();
@@ -242,6 +242,15 @@ class RecordingService extends ChangeNotifier {
       }
 
       await _native.pasteText(response, restoreClipboard: true);
+
+      if (_isStaleProcessing(processingGeneration)) {
+        _isProcessing = false;
+        try {
+          await File(path).delete();
+        } catch (_) {}
+        notifyListeners();
+        return;
+      }
 
       _isProcessing = false;
       _isPasteSuccess = true;
@@ -270,7 +279,7 @@ class RecordingService extends ChangeNotifier {
         await File(path).delete();
       } catch (_) {}
     } catch (e) {
-      if (!_cancelRequested) {
+      if (!_isStaleProcessing(processingGeneration)) {
         _isProcessing = false;
         _lastError = e.toString();
         await _native.dismissRecordingOverlay();
@@ -281,6 +290,9 @@ class RecordingService extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  bool _isStaleProcessing(int generation) =>
+      generation != _processingGeneration;
 
   /// Cancels recording or processing when the user taps the escape button.
   Future<void> cancelRecordingOrProcessing() async {
@@ -301,7 +313,7 @@ class RecordingService extends ChangeNotifier {
       return;
     }
     if (_isProcessing) {
-      _cancelRequested = true;
+      _processingGeneration++;
       await _native.dismissRecordingOverlay();
       _isProcessing = false;
       notifyListeners();

@@ -28,7 +28,7 @@ struct NativeRecordingPillView: View {
                         .frame(height: 10)
                 }
             } else if pillState.state == "success" {
-                Text("Pasted ✓")
+                Text("Pasted")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(.white.opacity(0.95))
             }

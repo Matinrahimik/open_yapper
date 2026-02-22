@@ -224,7 +224,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               padding: const EdgeInsets.only(bottom: 16),
               child: Text(
                 'Settings',
-                style: theme.textTheme.titleLarge,
+                style: theme.textTheme.headlineSmall,
               ),
             ),
             _Section(
@@ -257,7 +257,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 12),
             _Section(
               title: 'Gemini API Key',
               icon: Symbols.key,
@@ -314,7 +314,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
             _Section(
               title: 'Global Hotkeys',
               icon: Symbols.keyboard,
@@ -357,7 +357,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
             _Section(
               title: 'Permissions',
               icon: Symbols.shield,

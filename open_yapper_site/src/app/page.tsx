@@ -4,6 +4,7 @@ import {
   Navbar,
   HeroSection,
   MarqueeStrip,
+  FeaturesSection,
   DemoSection,
   Footer,
 } from "@/components";
@@ -18,6 +19,8 @@ export default function OpenYapperPage() {
       <main className="pt-[73px]">
         <HeroSection />
         <MarqueeStrip />
+        <FeaturesSection />
+        {/* <VideoPlaceholderSection /> */}
         <DemoSection />
         <Footer />
       </main>

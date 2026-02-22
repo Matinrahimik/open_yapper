@@ -6,6 +6,7 @@ class OverlayWindowController {
     private var panel: NSPanel?
     private var pillState = PillState()
     private var escapeMonitor: Any?
+    private var globalEscapeMonitor: Any?
     var onCancel: (() -> Void)?
 
     class PillState: ObservableObject {
@@ -69,16 +70,30 @@ class OverlayWindowController {
 
         self.panel = panel
 
-        // Listen for Escape key to cancel
+        // Re-install monitors in case the overlay is shown again quickly.
+        if let monitor = escapeMonitor {
+            NSEvent.removeMonitor(monitor)
+            escapeMonitor = nil
+        }
+        if let monitor = globalEscapeMonitor {
+            NSEvent.removeMonitor(monitor)
+            globalEscapeMonitor = nil
+        }
+
+        // Listen for Escape key to cancel.
+        // Local monitor catches events when this app is active.
         escapeMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            guard let self, event.keyCode == UInt16(kVK_Escape), self.panel != nil else {
-                return event
-            }
-            if pillState.state != "success" {
-                onCancel?()
-                return nil  // Consume the event
+            guard let self else { return event }
+            if self.handleEscapeIfNeeded(event: event) {
+                return nil // Consume the event
             }
             return event
+        }
+
+        // Global monitor catches Escape while user is focused in another app.
+        globalEscapeMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self else { return }
+            _ = self.handleEscapeIfNeeded(event: event)
         }
     }
 
@@ -106,6 +121,10 @@ class OverlayWindowController {
             NSEvent.removeMonitor(monitor)
             escapeMonitor = nil
         }
+        if let monitor = globalEscapeMonitor {
+            NSEvent.removeMonitor(monitor)
+            globalEscapeMonitor = nil
+        }
         NSAnimationContext.runAnimationGroup({ context in
             context.duration = 0.3
             context.timingFunction = CAMediaTimingFunction(name: .easeIn)
@@ -117,5 +136,16 @@ class OverlayWindowController {
             self?.panel?.close()
             self?.panel = nil
         })
+    }
+
+    private func handleEscapeIfNeeded(event: NSEvent) -> Bool {
+        guard event.keyCode == UInt16(kVK_Escape), panel != nil else {
+            return false
+        }
+        guard pillState.state != "success" else {
+            return false
+        }
+        onCancel?()
+        return true
     }
 }

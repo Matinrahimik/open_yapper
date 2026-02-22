@@ -43,7 +43,11 @@ def main():
 
     # Resize to 1024x1024 for flutter_launcher_icons (recommended size)
     img_resized = img.resize((1024, 1024), Image.Resampling.LANCZOS)
-    img_resized.save(out_path, "PNG")
+
+    # Flatten onto a solid background so output has no transparency.
+    solid_bg = Image.new("RGB", (1024, 1024), (BG_R, BG_G, BG_B))
+    solid_bg.paste(img_resized, (0, 0), img_resized)
+    solid_bg.save(out_path, "PNG")
     print(f"Created app icon: {out_path}")
     return str(out_path)
 

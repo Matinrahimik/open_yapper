@@ -201,7 +201,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   children: [
                     Text(
                       'History',
-                      style: Theme.of(context).textTheme.titleLarge,
+                      style: Theme.of(context).textTheme.headlineSmall,
                     ),
                     TextButton.icon(
                     onPressed: () async {

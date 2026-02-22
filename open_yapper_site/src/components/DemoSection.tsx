@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Mic, Square, Copy, Check, Sparkles } from "lucide-react";
+import { Mic, Square, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { demoRaw, demoRefined } from "@/data/demo";
 
@@ -12,7 +12,6 @@ export function DemoSection() {
   >("idle");
   const [rawText, setRawText] = useState("");
   const [refinedText, setRefinedText] = useState("");
-  const [copied, setCopied] = useState(false);
 
   const words = demoRaw.split(" ");
   const wordIndexRef = { current: 0 };
@@ -59,12 +58,6 @@ export function DemoSection() {
     }, 1500);
   }, []);
 
-  const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(refinedText);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }, [refinedText]);
-
   const resetDemo = useCallback(() => {
     setDemoStage("idle");
     setRawText("");
@@ -84,25 +77,33 @@ export function DemoSection() {
     >
       <div className="mx-auto grid max-w-6xl gap-16 lg:grid-cols-2 lg:gap-20">
         {/* Left column */}
-        <div className="flex flex-col justify-center">
+        <div className="flex flex-col items-center justify-center text-center lg:items-start lg:text-left">
           <h2
             className="text-4xl font-normal uppercase text-[#0A0A0A] md:text-5xl lg:text-6xl"
             style={{ fontFamily: "var(--font-anton), sans-serif" }}
           >
-            Try the Secret Sauce
+            See Your Yap in Action
           </h2>
           <p className="mt-6 text-lg font-medium text-[#0A0A0A]/90 md:text-xl">
-            Record your thoughts naturally. Our AI transcribes, removes filler
-            words, and polishes your text. Copy and paste anywhere.
+            Bring your own API key, start talking, and let Open Yapper do the
+            cleanup. Your raw thoughts turn into polished text you can paste
+            wherever you are working.
           </p>
           <ul className="mt-10 flex flex-col gap-4">
-            {["Ramble naturally", "AI cleans the mess", "Paste anywhere"].map(
+            {[
+              "Bring your own API key",
+              "Ramble Naturally",
+              "AI Cleans Up the Mess",
+              "Paste anywhere that you are working",
+            ].map(
               (step, i) => (
-                <li key={i} className="flex items-center gap-4">
+                <li key={i} className="flex items-center justify-center gap-4 lg:justify-start">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#0A0A0A] text-sm font-bold text-[#D4FF00]">
                     {i + 1}
                   </span>
-                  <span className="font-semibold text-[#0A0A0A]">{step}</span>
+                  <span className="text-lg font-semibold text-[#0A0A0A] md:text-xl">
+                    {step}
+                  </span>
                 </li>
               )
             )}
@@ -120,12 +121,6 @@ export function DemoSection() {
               <div className="h-3 w-3 rounded-full bg-yellow-500" />
               <div className="h-3 w-3 rounded-full bg-green-500" />
             </div>
-            <span
-              className="flex-1 text-center text-sm font-normal uppercase text-[#F4F4F0]"
-              style={{ fontFamily: "var(--font-anton), sans-serif" }}
-            >
-              Open Yapper App
-            </span>
           </div>
 
           {/* Mock body */}
@@ -178,28 +173,9 @@ export function DemoSection() {
                       </span>
                     </div>
                   ) : (
-                    <div className="relative">
-                      <p className="py-2 font-medium text-[#0A0A0A]">
-                        {refinedText}
-                      </p>
-                      <button
-                        type="button"
-                        onClick={handleCopy}
-                        className="absolute bottom-0 right-0 flex items-center gap-2 rounded-lg border-2 border-[#0A0A0A] bg-[#0A0A0A] px-3 py-1.5 text-sm font-semibold text-[#D4FF00] transition-all hover:-translate-y-0.5"
-                      >
-                        {copied ? (
-                          <>
-                            <Check className="h-4 w-4" aria-hidden />
-                            Copied!
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="h-4 w-4" aria-hidden />
-                            Copy
-                          </>
-                        )}
-                      </button>
-                    </div>
+                    <p className="py-2 font-medium text-[#0A0A0A]">
+                      {refinedText}
+                    </p>
                   )}
                 </motion.div>
               )}

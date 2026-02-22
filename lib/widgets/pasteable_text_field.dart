@@ -14,6 +14,7 @@ class PasteableTextField extends StatefulWidget {
     this.onChanged,
     this.onSubmitted,
     this.readOnly = false,
+    this.cursorColor,
   });
 
   final TextEditingController controller;
@@ -23,6 +24,7 @@ class PasteableTextField extends StatefulWidget {
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
   final bool readOnly;
+  final Color? cursorColor;
 
   @override
   State<PasteableTextField> createState() => _PasteableTextFieldState();
@@ -65,6 +67,7 @@ class _PasteableTextFieldState extends State<PasteableTextField> {
           decoration: widget.decoration,
           maxLines: widget.maxLines,
           obscureText: widget.obscureText,
+          cursorColor: widget.cursorColor,
           onChanged: widget.onChanged,
           onSubmitted: widget.onSubmitted,
           readOnly: widget.readOnly,

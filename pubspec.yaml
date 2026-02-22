@@ -25,19 +25,5 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.4
 
-flutter_launcher_icons:
-  image_path: "assets/app_icon.png"
-  android: true
-  ios: true
-  remove_alpha_ios: true  # App Store requires no alpha channel
-  macos:
-    generate: true
-  web:
-    generate: true
-    background_color: "#F4F4F0"
-    theme_color: "#D4FF00"
-  windows:
-    generate: true
-
 flutter:
   uses-material-design: true

@@ -190,7 +190,7 @@ class _CustomizationScreenState extends State<CustomizationScreen> {
           padding: const EdgeInsets.only(bottom: 16),
           child: Text(
             'Customization',
-            style: theme.textTheme.titleLarge,
+            style: theme.textTheme.headlineSmall,
           ),
         ),
         _Section(
@@ -363,8 +363,8 @@ class _AppConfigSheet extends StatefulWidget {
   final InstalledApp app;
   final String initialTone;
   final String initialPrompt;
-  final ValueChanged<String> onSaveTone;
-  final ValueChanged<String?> onSavePrompt;
+  final Future<void> Function(String) onSaveTone;
+  final Future<void> Function(String?) onSavePrompt;
   final VoidCallback onClose;
 
   @override
@@ -395,9 +395,9 @@ class _AppConfigSheetState extends State<_AppConfigSheet> {
     final theme = Theme.of(context);
 
     return DraggableScrollableSheet(
-      initialChildSize: 0.6,
+      initialChildSize: 0.9,
       minChildSize: 0.4,
-      maxChildSize: 0.9,
+      maxChildSize: 0.95,
       expand: false,
       builder: (context, scrollController) => SafeArea(
         child: Padding(
@@ -477,10 +477,10 @@ class _AppConfigSheetState extends State<_AppConfigSheet> {
                                 ))
                             .toList(),
                         selected: {_tone},
-                        onSelectionChanged: (selected) {
+                        onSelectionChanged: (selected) async {
                           if (selected.isNotEmpty) {
                             setState(() => _tone = selected.first);
-                            widget.onSaveTone(selected.first);
+                            await widget.onSaveTone(selected.first);
                           }
                         },
                       ),
@@ -519,6 +519,9 @@ class _AppConfigSheetState extends State<_AppConfigSheet> {
                         PasteableTextField(
                           controller: _promptController,
                           maxLines: 4,
+                          cursorColor: _promptController.text.trim().isNotEmpty
+                              ? theme.colorScheme.primary
+                              : null,
                           decoration: const InputDecoration(
                             hintText:
                                 'e.g. Always use bullet points, keep it brief, write in first person...',
@@ -526,11 +529,14 @@ class _AppConfigSheetState extends State<_AppConfigSheet> {
                             alignLabelWithHint: true,
                           ),
                           onChanged: (_) => setState(() {}),
-                          onSubmitted: (_) {
-                            widget.onSavePrompt(
+                          onSubmitted: (_) async {
+                            await widget.onSavePrompt(
                                 _promptController.text.trim().isEmpty
                                     ? null
                                     : _promptController.text);
+                            if (mounted) {
+                              widget.onClose();
+                            }
                           },
                         ),
                       ],
@@ -547,14 +553,12 @@ class _AppConfigSheetState extends State<_AppConfigSheet> {
                     Padding(
                       padding: const EdgeInsets.only(right: 8),
                       child: FilledButton(
-                        onPressed: () {
+                        onPressed: () async {
                           final text = _promptController.text.trim();
-                          widget.onSavePrompt(
-                              text.isEmpty ? null : text);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Custom prompt saved')),
-                          );
+                          await widget.onSavePrompt(text.isEmpty ? null : text);
+                          if (mounted) {
+                            widget.onClose();
+                          }
                         },
                         child: const Text('Save custom prompt'),
                       ),

@@ -96,23 +96,13 @@ class _StatsScreenState extends State<StatsScreen> {
     }
 
     return ListView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       children: [
         Padding(
           padding: const EdgeInsets.only(bottom: 16),
-          child: Row(
-            children: [
-              Icon(
-                Symbols.emoji_events,
-                size: 32,
-                color: theme.colorScheme.primary,
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'Your Stats',
-                style: theme.textTheme.titleLarge,
-              ),
-            ],
+          child: Text(
+            'Your Stats',
+            style: theme.textTheme.headlineSmall,
           ),
         ),
         if (entries.isEmpty)
@@ -173,7 +163,7 @@ class _StatsScreenState extends State<StatsScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           _StatCard(
             icon: Symbols.speed,
             title: 'Speed comparison',

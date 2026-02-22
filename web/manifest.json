@@ -3,7 +3,7 @@
     "short_name": "open_yapper",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#F4F4F0",
+    "background_color": "#D4FF00",
     "theme_color": "#D4FF00",
     "description": "The GEN Z voice dictation app. Ramble naturally, AI cleans the mess—no cap. Open-source WhisperFlow alternative.",
     "orientation": "portrait-primary",
