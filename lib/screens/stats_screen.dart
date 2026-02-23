@@ -226,12 +226,12 @@ class _StatsScreenState extends State<StatsScreen> {
                 subtitle: 'Based on ${thisMonthEntries.length} recording(s)',
               ),
               _StatRow(
-                label: 'WhisperFlow equivalent',
+                label: 'Wispr Flow equivalent',
                 value: '\$${_whisperFlowMonthlyPrice.toStringAsFixed(0)}/mo',
                 subtitle: 'Fixed subscription price',
               ),
               _StatRow(
-                label: 'Savings vs WhisperFlow',
+                label: 'Savings vs Wispr Flow',
                 value: monthlySavings > 0
                     ? '\$${monthlySavings.toStringAsFixed(2)}/mo'
                     : monthlySavings < 0
@@ -240,7 +240,7 @@ class _StatsScreenState extends State<StatsScreen> {
                 subtitle: monthlySavings > 0
                     ? 'You\'re spending less with pay-per-use'
                     : monthlySavings < 0
-                        ? 'Above WhisperFlow this month'
+                        ? 'Above Wispr Flow this month'
                         : 'Break-even',
               ),
             ],
