@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'settings_storage.dart';
+
 /// A single recording entry in history.
 class RecordingEntry {
   const RecordingEntry({
@@ -30,15 +32,15 @@ class RecordingEntry {
   String get displayText => response ?? transcription ?? '';
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'filePath': filePath,
-        'recordedAt': recordedAt.toIso8601String(),
-        'durationSeconds': durationSeconds,
-        'transcription': transcription,
-        'response': response,
-        'targetApp': targetApp,
-        'model': model,
-      };
+    'id': id,
+    'filePath': filePath,
+    'recordedAt': recordedAt.toIso8601String(),
+    'durationSeconds': durationSeconds,
+    'transcription': transcription,
+    'response': response,
+    'targetApp': targetApp,
+    'model': model,
+  };
 
   factory RecordingEntry.fromJson(Map<String, dynamic> json) {
     final transcription = json['transcription'] as String?;
@@ -51,7 +53,7 @@ class RecordingEntry {
       transcription: transcription,
       response: response ?? transcription,
       targetApp: json['targetApp'] as String?,
-      model: json['model'] as String? ?? 'gemini-flash-lite-latest',
+      model: json['model'] as String? ?? defaultGeminiModel,
     );
   }
 
@@ -61,17 +63,16 @@ class RecordingEntry {
     String? targetApp,
     String? model,
     double? durationSeconds,
-  }) =>
-      RecordingEntry(
-        id: id,
-        filePath: filePath,
-        recordedAt: recordedAt,
-        durationSeconds: durationSeconds ?? this.durationSeconds,
-        transcription: transcription ?? this.transcription,
-        response: response ?? this.response,
-        targetApp: targetApp ?? this.targetApp,
-        model: model ?? this.model,
-      );
+  }) => RecordingEntry(
+    id: id,
+    filePath: filePath,
+    recordedAt: recordedAt,
+    durationSeconds: durationSeconds ?? this.durationSeconds,
+    transcription: transcription ?? this.transcription,
+    response: response ?? this.response,
+    targetApp: targetApp ?? this.targetApp,
+    model: model ?? this.model,
+  );
 }
 
 /// Service that persists and manages recording history.
@@ -100,12 +101,14 @@ class RecordingHistoryService extends ChangeNotifier {
       if (await file.exists()) {
         final content = await file.readAsString();
         final list = jsonDecode(content) as List<dynamic>;
-        _entries = list
-            .map((e) => RecordingEntry.fromJson(e as Map<String, dynamic>))
-            .where((e) =>
-                e.filePath.isEmpty || File(e.filePath).existsSync())
-            .toList()
-          ..sort((a, b) => b.recordedAt.compareTo(a.recordedAt));
+        _entries =
+            list
+                .map((e) => RecordingEntry.fromJson(e as Map<String, dynamic>))
+                .where(
+                  (e) => e.filePath.isEmpty || File(e.filePath).existsSync(),
+                )
+                .toList()
+              ..sort((a, b) => b.recordedAt.compareTo(a.recordedAt));
       } else {
         _entries = [];
       }

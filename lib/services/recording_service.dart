@@ -28,7 +28,7 @@ class RecordingService extends ChangeNotifier {
        _dictionaryService = dictionaryService,
        _userProfileService = userProfileService,
        _loadApiKey = loadApiKey ?? (() async => null),
-       _loadModel = loadModel ?? (() async => 'gemini-flash-lite-latest') {
+       _loadModel = loadModel ?? (() async => defaultGeminiModel) {
     _init();
   }
 

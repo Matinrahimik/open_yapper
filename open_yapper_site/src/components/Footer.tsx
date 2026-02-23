@@ -1,11 +1,7 @@
 "use client";
 
-import { ArrowRight, Github, Heart } from "lucide-react";
+import { Github, Heart } from "lucide-react";
 import { motion } from "motion/react";
-
-const DOWNLOAD_URL =
-  process.env.NEXT_PUBLIC_DOWNLOAD_URL ||
-  "https://github.com/Matinrahimik/open_yapper/releases/latest/download/open_yapper.dmg";
 
 export function Footer() {
   return (
@@ -19,7 +15,7 @@ export function Footer() {
             Ready to yap?
           </h2>
           <div className="flex flex-col items-center gap-4 sm:flex-row">
-            <motion.a
+            {/* <motion.a
               href={DOWNLOAD_URL}
               download="Open Yapper.dmg"
               target="_blank"
@@ -30,7 +26,7 @@ export function Footer() {
             >
               Get Open Yapper Free
               <ArrowRight className="h-5 w-5 text-[#D4FF00]" aria-hidden />
-            </motion.a>
+            </motion.a> */}
 
             <motion.a
               href="https://github.com/Matinrahimik/open_yapper"
@@ -40,7 +36,7 @@ export function Footer() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              View Latest Updates on GitHub
+              View on GitHub
               <Github className="h-5 w-5 text-[#F4F4F0]" aria-hidden />
             </motion.a>
           </div>

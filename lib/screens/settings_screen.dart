@@ -183,6 +183,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _apiKeyObscured = true;
   bool _genZEnabled = false;
   bool _phraseExpansionEnabled = true;
+  String _selectedModel = defaultGeminiModel;
   HotkeyConfig _hotkeyConfig = HotkeyConfig.defaultConfig;
   String? _capturingHotkey; // 'start' | 'stop' | 'hold'
   String _appVersion = '...';
@@ -203,12 +204,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _loadSettings() async {
     final key = await loadGeminiApiKey();
+    final model = await loadGeminiModel();
     final hotkeyConfig = await loadHotkeyConfig();
     final genZEnabled = await loadGenZEnabled();
     final phraseExpansionEnabled = await loadPhraseExpansionEnabled();
     if (mounted) {
       setState(() {
         _apiKeyController.text = key ?? '';
+        _selectedModel = model;
         _hotkeyConfig = hotkeyConfig;
         _genZEnabled = genZEnabled;
         _phraseExpansionEnabled = phraseExpansionEnabled;
@@ -366,6 +369,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
         context,
       ).showSnackBar(const SnackBar(content: Text('API key saved')));
     }
+  }
+
+  Future<void> _saveModel(String model) async {
+    await saveGeminiModel(model);
+    if (!mounted) return;
+    setState(() => _selectedModel = model);
+    final modelLabel = model == geminiFlashLatestModel
+        ? 'Flash latest'
+        : 'Flash lite latest';
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Model set to $modelLabel')));
   }
 
   Future<void> _checkForUpdatesManually() async {
@@ -571,6 +586,58 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         alpha: 0.4,
                       ),
                     ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            _Section(
+              title: 'Model Selection',
+              icon: Symbols.smart_toy,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Choose which Gemini model to use for processing.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Flash latest is more accurate but more expensive.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Flash lite latest is cheaper with medium accuracy.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: _selectedModel,
+                    decoration: const InputDecoration(
+                      labelText: 'Gemini model',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem<String>(
+                        value: geminiFlashLiteLatestModel,
+                        child: Text('Flash lite latest (default)'),
+                      ),
+                      DropdownMenuItem<String>(
+                        value: geminiFlashLatestModel,
+                        child: Text('Flash latest'),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value == null || value == _selectedModel) return;
+                      _saveModel(value);
+                    },
                   ),
                 ],
               ),

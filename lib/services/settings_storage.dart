@@ -4,6 +4,7 @@ import 'keychain_service.dart';
 import 'prompt_builder.dart';
 
 const _geminiApiKeyKey = 'gemini_api_key';
+const _geminiModelKey = 'gemini_model';
 const _onboardingCompletedKey = 'onboarding_completed';
 const _genZEnabledKey = 'gen_z_enabled';
 const _appTonePrefix = 'app_tone_';
@@ -19,6 +20,14 @@ const _hotkeyStopEnabledKey = 'hotkey_stop_enabled';
 const _hotkeyHoldEnabledKey = 'hotkey_hold_enabled';
 const _phraseExpansionEnabledKey = 'phrase_expansion_enabled';
 const _dismissedUpdateVersionKey = 'dismissed_update_version';
+
+const geminiFlashLatestModel = 'gemini-flash-latest';
+const geminiFlashLiteLatestModel = 'gemini-flash-lite-latest';
+const defaultGeminiModel = geminiFlashLiteLatestModel;
+const supportedGeminiModels = <String>{
+  geminiFlashLatestModel,
+  geminiFlashLiteLatestModel,
+};
 
 /// Hotkey configuration for global shortcuts.
 class HotkeyConfig {
@@ -79,6 +88,31 @@ Future<String?> loadGeminiApiKey() async {
 /// Saves the Gemini API key to Keychain.
 Future<void> saveGeminiApiKey(String key) async {
   await saveGeminiApiKeyToKeychain(key);
+}
+
+/// Loads the selected Gemini model, defaulting to flash-lite when unset.
+Future<String> loadGeminiModel() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final model = prefs.getString(_geminiModelKey);
+    if (model != null && supportedGeminiModels.contains(model)) {
+      return model;
+    }
+    return defaultGeminiModel;
+  } catch (_) {
+    return defaultGeminiModel;
+  }
+}
+
+/// Saves the selected Gemini model.
+Future<void> saveGeminiModel(String model) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final safeModel = supportedGeminiModels.contains(model)
+        ? model
+        : defaultGeminiModel;
+    await prefs.setString(_geminiModelKey, safeModel);
+  } catch (_) {}
 }
 
 /// Loads the tone for a specific app. Returns default when not configured.

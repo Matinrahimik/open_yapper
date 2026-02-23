@@ -33,7 +33,7 @@ void main() async {
     dictionaryService: dictionaryService,
     userProfileService: userProfileService,
     loadApiKey: loadGeminiApiKey,
-    loadModel: () async => 'gemini-flash-lite-latest',
+    loadModel: loadGeminiModel,
   );
 
   NativeBridge.instance.setHotkeyCallbacks(

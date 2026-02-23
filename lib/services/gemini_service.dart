@@ -3,8 +3,10 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
+import 'settings_storage.dart';
+
 class GeminiService {
-  GeminiService({required this.apiKey, this.model = 'gemini-flash-lite-latest'});
+  GeminiService({required this.apiKey, this.model = defaultGeminiModel});
 
   final String apiKey;
   final String model;
@@ -23,18 +25,15 @@ class GeminiService {
           'parts': [
             {'text': systemPrompt},
             {
-              'inline_data': {
-                'mime_type': 'audio/mp4',
-                'data': base64Audio,
-              }
-            }
-          ]
-        }
+              'inline_data': {'mime_type': 'audio/mp4', 'data': base64Audio},
+            },
+          ],
+        },
       ],
       'generationConfig': {
         'temperature': 0.7,
         'thinkingConfig': {'thinkingBudget': 0},
-      }
+      },
     });
 
     final response = await http
@@ -47,7 +46,8 @@ class GeminiService {
 
     if (response.statusCode != 200) {
       throw GeminiException(
-          'API error (${response.statusCode}): ${response.body}');
+        'API error (${response.statusCode}): ${response.body}',
+      );
     }
 
     final data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -67,14 +67,14 @@ class GeminiService {
       'contents': [
         {
           'parts': [
-            {'text': '$systemPrompt\n\nUser said: $transcription'}
-          ]
-        }
+            {'text': '$systemPrompt\n\nUser said: $transcription'},
+          ],
+        },
       ],
       'generationConfig': {
         'temperature': 0.7,
         'thinkingConfig': {'thinkingBudget': 0},
-      }
+      },
     });
 
     final response = await http
@@ -87,7 +87,8 @@ class GeminiService {
 
     if (response.statusCode != 200) {
       throw GeminiException(
-          'API error (${response.statusCode}): ${response.body}');
+        'API error (${response.statusCode}): ${response.body}',
+      );
     }
 
     final data = jsonDecode(response.body) as Map<String, dynamic>;
