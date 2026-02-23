@@ -7,6 +7,39 @@
 
 ---
 
+## What is Open Yapper?
+
+**Open Yapper** (OY!) is the GEN Z voice dictation app. It's an open-source clone of [Wispr Flow](https://wisprflow.ai/)—ramble naturally, AI cleans the mess, no cap.
+
+Stop typing, start talking. Speak into your mic, and Open Yapper transcribes your voice, removes filler words (um, uh, like, you know), and turns your rambled thoughts into polished text ready to paste anywhere—Gmail, Slack, Notes, ChatGPT, you name it.
+
+### Key Features
+
+- **Voice-to-text transcription** — Record your voice and get clean, formatted text
+- **Filler word removal** — Automatically strips "um," "uh," "like," and other verbal hiccups
+- **Gen Z mode** — Optional rewrite into Gen Z slang (lowkey, no cap, slay, it's giving, etc.)
+- **Per-app customization** — Set tone (casual, formal, etc.) and target app hints
+- **Global hotkeys** — Press **⌥ Space** (Option+Space) to start/stop recording on macOS
+- **History & stats** — Browse past recordings, copy text, and see usage stats
+- **Paste anywhere** — Uses accessibility APIs to paste directly into the focused app
+
+### Tech Stack
+
+- **Flutter** — Cross-platform (macOS, iOS, Android, Web, Windows)
+- **Google Gemini** — AI transcription and text refinement
+- **Native macOS integration** — Hotkeys, accessibility, microphone permissions
+
+---
+
+## Download
+
+**Website:** [www.openyapper.com](https://www.openyapper.com)
+
+The website is currently the landing page only.  
+The macOS prebuilt app is temporarily unavailable, so please clone this repository and build your own release (`flutter build macos --release`) using the guide above.
+
+---
+
 ## Non-Technical Setup (Install It Once, Use It Anytime)
 
 If you want Open Yapper on your computer like a normal app (without opening Cursor/IDE every time), follow this:
@@ -67,39 +100,6 @@ flutter build macos --release
 ```
 
 Then replace the old app in Applications with the new `open_yapper.app`.
-
----
-
-## What is Open Yapper?
-
-**Open Yapper** (OY!) is the GEN Z voice dictation app. It's an open-source clone of [Wispr Flow](https://wisprflow.ai/)—ramble naturally, AI cleans the mess, no cap.
-
-Stop typing, start talking. Speak into your mic, and Open Yapper transcribes your voice, removes filler words (um, uh, like, you know), and turns your rambled thoughts into polished text ready to paste anywhere—Gmail, Slack, Notes, ChatGPT, you name it.
-
-### Key Features
-
-- **Voice-to-text transcription** — Record your voice and get clean, formatted text
-- **Filler word removal** — Automatically strips "um," "uh," "like," and other verbal hiccups
-- **Gen Z mode** — Optional rewrite into Gen Z slang (lowkey, no cap, slay, it's giving, etc.)
-- **Per-app customization** — Set tone (casual, formal, etc.) and target app hints
-- **Global hotkeys** — Press **⌥ Space** (Option+Space) to start/stop recording on macOS
-- **History & stats** — Browse past recordings, copy text, and see usage stats
-- **Paste anywhere** — Uses accessibility APIs to paste directly into the focused app
-
-### Tech Stack
-
-- **Flutter** — Cross-platform (macOS, iOS, Android, Web, Windows)
-- **Google Gemini** — AI transcription and text refinement
-- **Native macOS integration** — Hotkeys, accessibility, microphone permissions
-
----
-
-## Download
-
-**Website:** [www.openyapper.com](https://www.openyapper.com)
-
-The website is currently the landing page only.  
-The macOS prebuilt app is temporarily unavailable, so please clone this repository and build your own release (`flutter build macos --release`) using the guide above.
 
 ---
 
