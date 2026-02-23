@@ -35,8 +35,20 @@ struct NativeRecordingPillView: View {
 
             Spacer(minLength: 2)
 
-            // Counter and Esc hint on the right
-            if pillState.state == "recording" {
+            // Right side: counter/duration for recording, chars+seconds for success, Esc for processing
+            if pillState.state == "success" {
+                HStack(spacing: 4) {
+                    Text(formatDurationShort(pillState.duration))
+                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                        .foregroundColor(.white.opacity(0.8))
+                    Text("•")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.white.opacity(0.6))
+                    Text("\(pillState.charCount) chars")
+                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                        .foregroundColor(.white.opacity(0.8))
+                }
+            } else if pillState.state == "recording" {
                 HStack(spacing: 4) {
                     Text(formatDuration(pillState.duration))
                         .font(.system(size: 11, weight: .medium, design: .monospaced))
@@ -53,7 +65,7 @@ struct NativeRecordingPillView: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 10)
-        .frame(width: 180, height: 44)
+        .frame(width: pillState.state == "success" ? 220 : 180, height: 44)
         .background(Capsule().fill(Color.black.opacity(0.75)))
         .clipShape(Capsule())
     }
@@ -76,6 +88,13 @@ struct NativeRecordingPillView: View {
 
     private func formatDuration(_ d: TimeInterval) -> String {
         String(format: "%d:%02d", Int(d) / 60, Int(d) % 60)
+    }
+
+    private func formatDurationShort(_ d: TimeInterval) -> String {
+        if d < 60 {
+            return String(format: "%.1fs", d)
+        }
+        return String(format: "%d:%02d", Int(d) / 60, Int(d) % 60)
     }
 }
 

@@ -13,6 +13,7 @@ class OverlayWindowController {
         @Published var state: String = "recording"  // "recording", "processing", "success"
         @Published var audioLevel: Float = 0.0
         @Published var duration: TimeInterval = 0
+        @Published var charCount: Int = 0
     }
 
     func show(state: String) {
@@ -97,8 +98,21 @@ class OverlayWindowController {
         }
     }
 
-    func updateState(_ state: String) {
-        DispatchQueue.main.async { self.pillState.state = state }
+    func updateState(_ state: String, charCount: Int? = nil, duration: TimeInterval? = nil) {
+        DispatchQueue.main.async {
+            self.pillState.state = state
+            if let charCount { self.pillState.charCount = charCount }
+            if let duration { self.pillState.duration = duration }
+
+            // Resize panel when transitioning to success (wider pill for chars + duration)
+            if state == "success", let panel = self.panel, let screen = NSScreen.main {
+                let newWidth: CGFloat = 220
+                var frame = panel.frame
+                frame.size.width = newWidth
+                frame.origin.x = (screen.frame.width - newWidth) / 2 + screen.frame.origin.x
+                panel.setFrame(frame, display: true)
+            }
+        }
 
         if state == "success" {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in

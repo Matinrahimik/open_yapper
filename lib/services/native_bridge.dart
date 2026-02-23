@@ -104,9 +104,7 @@ class NativeBridge {
   }
 
   Future<void> setStopHotkeyEnabled(bool enabled) async {
-    await _channel.invokeMethod('setStopHotkeyEnabled', {
-      'enabled': enabled,
-    });
+    await _channel.invokeMethod('setStopHotkeyEnabled', {'enabled': enabled});
   }
 
   Future<void> pasteText(String text, {bool restoreClipboard = true}) async {
@@ -123,12 +121,16 @@ class NativeBridge {
   /// Returns list of installed apps with name and base64 PNG icon.
   /// Each map: {name: String, path: String, iconBase64: String}
   Future<List<Map<String, dynamic>>> getInstalledApps() async {
-    final result = await _channel.invokeMethod<List<dynamic>>('getInstalledApps');
+    final result = await _channel.invokeMethod<List<dynamic>>(
+      'getInstalledApps',
+    );
     if (result == null) return [];
     return result
-        .map((e) => (e as Map<dynamic, dynamic>).map(
-              (k, v) => MapEntry(k.toString(), v),
-            ))
+        .map(
+          (e) => (e as Map<dynamic, dynamic>).map(
+            (k, v) => MapEntry(k.toString(), v),
+          ),
+        )
         .map((m) => Map<String, dynamic>.from(m))
         .toList();
   }
@@ -163,8 +165,15 @@ class NativeBridge {
     await _channel.invokeMethod('showRecordingOverlay');
   }
 
-  Future<void> updateOverlayState(String state) async {
-    await _channel.invokeMethod('updateOverlayState', {'state': state});
+  Future<void> updateOverlayState(
+    String state, {
+    int? charCount,
+    double? duration,
+  }) async {
+    final args = <String, dynamic>{'state': state};
+    if (charCount != null) args['charCount'] = charCount;
+    if (duration != null) args['duration'] = duration;
+    await _channel.invokeMethod('updateOverlayState', args);
   }
 
   Future<void> updateOverlayLevel(double level) async {
@@ -172,7 +181,9 @@ class NativeBridge {
   }
 
   Future<void> updateOverlayDuration(double duration) async {
-    await _channel.invokeMethod('updateOverlayDuration', {'duration': duration});
+    await _channel.invokeMethod('updateOverlayDuration', {
+      'duration': duration,
+    });
   }
 
   Future<void> dismissRecordingOverlay() async {
@@ -185,5 +196,10 @@ class NativeBridge {
 
   Future<String?> keychainLoad(String key) async {
     return await _channel.invokeMethod<String>('keychainLoad', {'key': key});
+  }
+
+  /// Trigger native updater UI (Sparkle on macOS).
+  Future<void> checkForNativeUpdates() async {
+    await _channel.invokeMethod('checkForNativeUpdates');
   }
 }

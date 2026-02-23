@@ -1,6 +1,7 @@
 import Cocoa
 import FlutterMacOS
 import Carbon.HIToolbox
+import Sparkle
 
 class NativeChannelHandler: NSObject {
     static let channelName = "com.openyapper/native"
@@ -12,6 +13,16 @@ class NativeChannelHandler: NSObject {
     private let permissionsHelper = PermissionsHelper()
     private let keychainHelper = KeychainHelper()
     private var overlayController: OverlayWindowController?
+    private let updaterController: SPUStandardUpdaterController
+
+    override init() {
+        updaterController = SPUStandardUpdaterController(
+            startingUpdater: true,
+            updaterDelegate: nil,
+            userDriverDelegate: nil
+        )
+        super.init()
+    }
 
     func register(with registrar: FlutterPluginRegistrar) {
         channel = FlutterMethodChannel(
@@ -152,6 +163,11 @@ class NativeChannelHandler: NSObject {
         case "restartApp":
             restartApp(result: result)
 
+        // --- Updates ---
+        case "checkForNativeUpdates":
+            updaterController.checkForUpdates(nil)
+            result(true)
+
         // --- Overlay Window ---
         case "showRecordingOverlay":
             if overlayController == nil {
@@ -170,7 +186,9 @@ class NativeChannelHandler: NSObject {
                 result(FlutterError(code: "INVALID_ARGS", message: "Missing state", details: nil))
                 return
             }
-            overlayController?.updateState(state)
+            let charCount = args["charCount"] as? Int
+            let duration = args["duration"] as? Double
+            overlayController?.updateState(state, charCount: charCount, duration: duration.map { TimeInterval($0) })
             result(true)
 
         case "updateOverlayLevel":

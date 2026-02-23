@@ -10,9 +10,10 @@ import '../services/recording_history_service.dart';
 import '../services/settings_storage.dart';
 import '../widgets/pasteable_text_field.dart';
 
-const _gridColumns = 5;
-const _cellWidth = 72.0;
-const _cellHeight = 88.0;
+const _gridSpacing = 12.0;
+const _gridMinTileWidth = 120.0;
+const _gridMaxColumns = 6;
+const _appIconSize = 72.0;
 
 class InstalledApp {
   InstalledApp({
@@ -178,10 +179,8 @@ class _CustomizationScreenState extends State<CustomizationScreen> {
     final filtered = _filteredApps;
     final defaultApp = InstalledApp(name: 'Default', path: '');
     final allApps = [defaultApp, ...filtered];
-    final customized =
-        allApps.where((a) => _isCustomized(a.name)).toList();
-    final notCustomized =
-        allApps.where((a) => !_isCustomized(a.name)).toList();
+    final customized = allApps.where((a) => _isCustomized(a.name)).toList();
+    final notCustomized = allApps.where((a) => !_isCustomized(a.name)).toList();
 
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
@@ -193,62 +192,120 @@ class _CustomizationScreenState extends State<CustomizationScreen> {
             style: theme.textTheme.headlineSmall,
           ),
         ),
+        Text(
+          'Set how Open Yapper writes in each app. Tap any app icon to choose a tone, or add advanced instructions.',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 16),
         _Section(
-          title: 'Per-app customization',
-          icon: Symbols.tune,
+          title: 'How this works',
+          icon: Symbols.info,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Tap an app to set the tone and optional custom instructions. The app in focus when you record determines which settings are used.',
+                'Default applies everywhere unless an app has its own custom setting.',
+                style: theme.textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'The app currently in focus when you record decides which profile is used.',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
-              const SizedBox(height: 16),
-              PasteableTextField(
-                controller: _searchController,
-                decoration: const InputDecoration(
-                  hintText: 'Search apps...',
-                  prefixIcon: Icon(Symbols.search, size: 20),
-                  border: OutlineInputBorder(),
-                ),
-                onChanged: (_) => setState(() {}),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        _Section(
+          title: 'Find app',
+          icon: Symbols.search,
+          child: PasteableTextField(
+            controller: _searchController,
+            decoration: const InputDecoration(
+              hintText: 'Search apps...',
+              prefixIcon: Icon(Symbols.search, size: 20),
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (_) => setState(() {}),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _Section(
+          title: 'Customized apps',
+          icon: Symbols.tune,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _CategoryHeader(
+                count: customized.length,
+                label: 'apps configured',
+                color: theme.colorScheme.primaryContainer,
+                textColor: theme.colorScheme.onPrimaryContainer,
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 12),
+              Text(
+                'These apps already have a saved tone or advanced prompt.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 14),
               if (_loading)
                 const Center(child: CircularProgressIndicator())
-              else ...[
-                if (customized.isNotEmpty) ...[
-                  Text(
-                    'Customized',
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _AppGrid(
-                    apps: customized,
-                    appTones: _appTones,
-                    onTap: (app) => _showAppMenu(context, app),
-                  ),
-                  const SizedBox(height: 24),
-                ],
-                Text(
-                  'Not customized',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w600,
-                  ),
+              else if (customized.isEmpty)
+                const _EmptyAppState(
+                  icon: Symbols.auto_fix_high,
+                  title: 'No customized apps yet',
+                  message: 'Pick an app below to create your first custom profile.',
+                )
+              else
+                _AppGrid(
+                  apps: customized,
+                  appTones: _appTones,
+                  onTap: (app) => _showAppMenu(context, app),
                 ),
-                const SizedBox(height: 12),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        _Section(
+          title: 'All other apps',
+          icon: Symbols.apps,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _CategoryHeader(
+                count: notCustomized.length,
+                label: 'ready to customize',
+                color: theme.colorScheme.surfaceContainer,
+                textColor: theme.colorScheme.onSurface,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Tap any app to customize it. "Default" controls global behavior when no app-specific profile is set.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 14),
+              if (_loading)
+                const Center(child: CircularProgressIndicator())
+              else if (notCustomized.isEmpty)
+                const _EmptyAppState(
+                  icon: Symbols.check_circle,
+                  title: 'Everything is customized',
+                  message: 'Search for another app or update an existing profile.',
+                )
+              else
                 _AppGrid(
                   apps: notCustomized,
                   appTones: _appTones,
                   onTap: (app) => _showAppMenu(context, app),
                 ),
-              ],
             ],
           ),
         ),
@@ -270,20 +327,27 @@ class _AppGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: _gridColumns,
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      childAspectRatio: _cellWidth / _cellHeight,
-      children: apps
-          .map((app) => _AppGridItem(
-                app: app,
-                tone: appTones[app.name] ?? PromptBuilder.validTones[1],
-                onTap: () => onTap(app),
-              ))
-          .toList(),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final calculatedColumns =
+            (constraints.maxWidth / (_gridMinTileWidth + _gridSpacing)).floor();
+        final crossAxisCount = calculatedColumns.clamp(2, _gridMaxColumns);
+        return GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: crossAxisCount,
+          mainAxisSpacing: _gridSpacing,
+          crossAxisSpacing: _gridSpacing,
+          childAspectRatio: 0.82,
+          children: apps
+              .map((app) => _AppGridItem(
+                    app: app,
+                    tone: appTones[app.name] ?? PromptBuilder.validTones[1],
+                    onTap: () => onTap(app),
+                  ))
+              .toList(),
+        );
+      },
     );
   }
 }
@@ -304,47 +368,150 @@ class _AppGridItem extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Material(
-      color: Colors.transparent,
+      color: theme.colorScheme.surfaceContainer,
+      borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (app.iconProvider != null)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image(
-                  image: app.iconProvider!,
-                  width: 56,
-                  height: 56,
-                  fit: BoxFit.cover,
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (app.iconProvider != null)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image(
+                    image: app.iconProvider!,
+                    width: _appIconSize,
+                    height: _appIconSize,
+                    fit: BoxFit.cover,
+                  ),
+                )
+              else
+                Container(
+                  width: _appIconSize,
+                  height: _appIconSize,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(
+                    app.name == 'Default' ? Symbols.settings : Symbols.apps,
+                    size: 34,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
-              )
-            else
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(12),
+              const SizedBox(height: 10),
+              Text(
+                app.name,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
                 ),
-                child: Icon(
-                  app.name == 'Default' ? Symbols.settings : Symbols.apps,
-                  size: 28,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                tone[0].toUpperCase() + tone.substring(1),
+                style: theme.textTheme.labelSmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-            const SizedBox(height: 6),
-            Text(
-              app.name,
-              style: theme.textTheme.bodySmall,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-            ),
-          ],
+            ],
+          ),
         ),
+      ),
+    );
+  }
+}
+
+class _CategoryHeader extends StatelessWidget {
+  const _CategoryHeader({
+    required this.count,
+    required this.label,
+    required this.color,
+    required this.textColor,
+  });
+
+  final int count;
+  final String label;
+  final Color color;
+  final Color textColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$count',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: textColor,
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: textColor,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyAppState extends StatelessWidget {
+  const _EmptyAppState({
+    required this.icon,
+    required this.title,
+    required this.message,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: theme.colorScheme.onSurfaceVariant),
+          const SizedBox(height: 8),
+          Text(
+            title,
+            style: theme.textTheme.titleSmall,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            message,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
@@ -413,15 +580,15 @@ class _AppConfigSheetState extends State<_AppConfigSheet> {
                       borderRadius: BorderRadius.circular(8),
                       child: Image(
                         image: widget.app.iconProvider!,
-                        width: 48,
-                        height: 48,
+                        width: 56,
+                        height: 56,
                         fit: BoxFit.cover,
                       ),
                     )
                   else
                     Container(
-                      width: 48,
-                      height: 48,
+                      width: 56,
+                      height: 56,
                       decoration: BoxDecoration(
                         color: theme.colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(8),

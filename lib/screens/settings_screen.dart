@@ -1,9 +1,14 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../services/native_bridge.dart';
 import '../services/recording_service.dart';
 import '../services/settings_storage.dart';
+import '../services/update_service.dart';
 import '../widgets/pasteable_text_field.dart';
 
 /// Formats a hotkey (keyCode + modifier flags) for display.
@@ -170,16 +175,24 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  static const _updateService = GitHubUpdateService(
+    owner: 'Matinrahimik',
+    repo: 'open_yapper',
+  );
   final TextEditingController _apiKeyController = TextEditingController();
   bool _apiKeyObscured = true;
   bool _genZEnabled = false;
+  bool _phraseExpansionEnabled = true;
   HotkeyConfig _hotkeyConfig = HotkeyConfig.defaultConfig;
   String? _capturingHotkey; // 'start' | 'stop' | 'hold'
+  String _appVersion = '...';
+  bool _isCheckingUpdates = false;
 
   @override
   void initState() {
     super.initState();
     _loadSettings();
+    _loadAppVersion();
   }
 
   @override
@@ -192,12 +205,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final key = await loadGeminiApiKey();
     final hotkeyConfig = await loadHotkeyConfig();
     final genZEnabled = await loadGenZEnabled();
+    final phraseExpansionEnabled = await loadPhraseExpansionEnabled();
     if (mounted) {
       setState(() {
         _apiKeyController.text = key ?? '';
         _hotkeyConfig = hotkeyConfig;
         _genZEnabled = genZEnabled;
+        _phraseExpansionEnabled = phraseExpansionEnabled;
       });
+    }
+  }
+
+  Future<void> _loadAppVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (!mounted) return;
+      setState(() {
+        _appVersion = info.version;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _appVersion = 'unknown');
     }
   }
 
@@ -206,8 +234,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (mounted) {
       setState(() => _genZEnabled = enabled);
       ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(enabled ? 'Gen Z mode on' : 'Gen Z mode off')),
+      );
+    }
+  }
+
+  Future<void> _savePhraseExpansion(bool enabled) async {
+    await savePhraseExpansionEnabled(enabled);
+    if (mounted) {
+      setState(() => _phraseExpansionEnabled = enabled);
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(enabled ? 'Gen Z mode on' : 'Gen Z mode off'),
+          content: Text(
+            enabled ? 'Phrase expansion on' : 'Phrase expansion off',
+          ),
         ),
       );
     }
@@ -220,38 +260,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!mounted) return;
       final newConfig = switch (which) {
         'start' => HotkeyConfig(
-            startKeyCode: captured['keyCode']!,
-            startFlags: captured['flags']!,
-            stopKeyCode: _hotkeyConfig.stopKeyCode,
-            stopFlags: _hotkeyConfig.stopFlags,
-            holdKeyCode: _hotkeyConfig.holdKeyCode,
-            holdFlags: _hotkeyConfig.holdFlags,
-            startEnabled: _hotkeyConfig.startEnabled,
-            stopEnabled: _hotkeyConfig.stopEnabled,
-            holdEnabled: _hotkeyConfig.holdEnabled,
-          ),
+          startKeyCode: captured['keyCode']!,
+          startFlags: captured['flags']!,
+          stopKeyCode: _hotkeyConfig.stopKeyCode,
+          stopFlags: _hotkeyConfig.stopFlags,
+          holdKeyCode: _hotkeyConfig.holdKeyCode,
+          holdFlags: _hotkeyConfig.holdFlags,
+          startEnabled: _hotkeyConfig.startEnabled,
+          stopEnabled: _hotkeyConfig.stopEnabled,
+          holdEnabled: _hotkeyConfig.holdEnabled,
+        ),
         'stop' => HotkeyConfig(
-            startKeyCode: _hotkeyConfig.startKeyCode,
-            startFlags: _hotkeyConfig.startFlags,
-            stopKeyCode: captured['keyCode']!,
-            stopFlags: captured['flags']!,
-            holdKeyCode: _hotkeyConfig.holdKeyCode,
-            holdFlags: _hotkeyConfig.holdFlags,
-            startEnabled: _hotkeyConfig.startEnabled,
-            stopEnabled: _hotkeyConfig.stopEnabled,
-            holdEnabled: _hotkeyConfig.holdEnabled,
-          ),
+          startKeyCode: _hotkeyConfig.startKeyCode,
+          startFlags: _hotkeyConfig.startFlags,
+          stopKeyCode: captured['keyCode']!,
+          stopFlags: captured['flags']!,
+          holdKeyCode: _hotkeyConfig.holdKeyCode,
+          holdFlags: _hotkeyConfig.holdFlags,
+          startEnabled: _hotkeyConfig.startEnabled,
+          stopEnabled: _hotkeyConfig.stopEnabled,
+          holdEnabled: _hotkeyConfig.holdEnabled,
+        ),
         'hold' => HotkeyConfig(
-            startKeyCode: _hotkeyConfig.startKeyCode,
-            startFlags: _hotkeyConfig.startFlags,
-            stopKeyCode: _hotkeyConfig.stopKeyCode,
-            stopFlags: _hotkeyConfig.stopFlags,
-            holdKeyCode: captured['keyCode']!,
-            holdFlags: captured['flags']!,
-            startEnabled: _hotkeyConfig.startEnabled,
-            stopEnabled: _hotkeyConfig.stopEnabled,
-            holdEnabled: _hotkeyConfig.holdEnabled,
-          ),
+          startKeyCode: _hotkeyConfig.startKeyCode,
+          startFlags: _hotkeyConfig.startFlags,
+          stopKeyCode: _hotkeyConfig.stopKeyCode,
+          stopFlags: _hotkeyConfig.stopFlags,
+          holdKeyCode: captured['keyCode']!,
+          holdFlags: captured['flags']!,
+          startEnabled: _hotkeyConfig.startEnabled,
+          stopEnabled: _hotkeyConfig.stopEnabled,
+          holdEnabled: _hotkeyConfig.holdEnabled,
+        ),
         _ => _hotkeyConfig,
       };
       await saveHotkeyConfig(newConfig);
@@ -261,9 +301,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       });
       widget.onHotKeyChanged();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Hotkey updated')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Hotkey updated')));
       }
     } catch (_) {
       if (mounted) {
@@ -278,38 +318,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _saveHotkeyEnabled(String which, bool enabled) async {
     final newConfig = switch (which) {
       'start' => HotkeyConfig(
-          startKeyCode: _hotkeyConfig.startKeyCode,
-          startFlags: _hotkeyConfig.startFlags,
-          stopKeyCode: _hotkeyConfig.stopKeyCode,
-          stopFlags: _hotkeyConfig.stopFlags,
-          holdKeyCode: _hotkeyConfig.holdKeyCode,
-          holdFlags: _hotkeyConfig.holdFlags,
-          startEnabled: enabled,
-          stopEnabled: _hotkeyConfig.stopEnabled,
-          holdEnabled: _hotkeyConfig.holdEnabled,
-        ),
+        startKeyCode: _hotkeyConfig.startKeyCode,
+        startFlags: _hotkeyConfig.startFlags,
+        stopKeyCode: _hotkeyConfig.stopKeyCode,
+        stopFlags: _hotkeyConfig.stopFlags,
+        holdKeyCode: _hotkeyConfig.holdKeyCode,
+        holdFlags: _hotkeyConfig.holdFlags,
+        startEnabled: enabled,
+        stopEnabled: _hotkeyConfig.stopEnabled,
+        holdEnabled: _hotkeyConfig.holdEnabled,
+      ),
       'stop' => HotkeyConfig(
-          startKeyCode: _hotkeyConfig.startKeyCode,
-          startFlags: _hotkeyConfig.startFlags,
-          stopKeyCode: _hotkeyConfig.stopKeyCode,
-          stopFlags: _hotkeyConfig.stopFlags,
-          holdKeyCode: _hotkeyConfig.holdKeyCode,
-          holdFlags: _hotkeyConfig.holdFlags,
-          startEnabled: _hotkeyConfig.startEnabled,
-          stopEnabled: enabled,
-          holdEnabled: _hotkeyConfig.holdEnabled,
-        ),
+        startKeyCode: _hotkeyConfig.startKeyCode,
+        startFlags: _hotkeyConfig.startFlags,
+        stopKeyCode: _hotkeyConfig.stopKeyCode,
+        stopFlags: _hotkeyConfig.stopFlags,
+        holdKeyCode: _hotkeyConfig.holdKeyCode,
+        holdFlags: _hotkeyConfig.holdFlags,
+        startEnabled: _hotkeyConfig.startEnabled,
+        stopEnabled: enabled,
+        holdEnabled: _hotkeyConfig.holdEnabled,
+      ),
       'hold' => HotkeyConfig(
-          startKeyCode: _hotkeyConfig.startKeyCode,
-          startFlags: _hotkeyConfig.startFlags,
-          stopKeyCode: _hotkeyConfig.stopKeyCode,
-          stopFlags: _hotkeyConfig.stopFlags,
-          holdKeyCode: _hotkeyConfig.holdKeyCode,
-          holdFlags: _hotkeyConfig.holdFlags,
-          startEnabled: _hotkeyConfig.startEnabled,
-          stopEnabled: _hotkeyConfig.stopEnabled,
-          holdEnabled: enabled,
-        ),
+        startKeyCode: _hotkeyConfig.startKeyCode,
+        startFlags: _hotkeyConfig.startFlags,
+        stopKeyCode: _hotkeyConfig.stopKeyCode,
+        stopFlags: _hotkeyConfig.stopFlags,
+        holdKeyCode: _hotkeyConfig.holdKeyCode,
+        holdFlags: _hotkeyConfig.holdFlags,
+        startEnabled: _hotkeyConfig.startEnabled,
+        stopEnabled: _hotkeyConfig.stopEnabled,
+        holdEnabled: enabled,
+      ),
       _ => _hotkeyConfig,
     };
 
@@ -322,10 +362,89 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _saveApiKey() async {
     await saveGeminiApiKey(_apiKeyController.text);
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('API key saved')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('API key saved')));
     }
+  }
+
+  Future<void> _checkForUpdatesManually() async {
+    if (_isCheckingUpdates) return;
+    setState(() => _isCheckingUpdates = true);
+    final result = await _updateService.checkForUpdate();
+    if (!mounted) return;
+    setState(() => _isCheckingUpdates = false);
+
+    if (result == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not check for updates right now')),
+      );
+      return;
+    }
+    if (!result.hasUpdate) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('You are up to date (v${result.currentVersion})'),
+        ),
+      );
+      return;
+    }
+    await _showUpdateDialog(result);
+  }
+
+  Future<void> _showUpdateDialog(UpdateCheckResult result) async {
+    final notes = (result.releaseNotes ?? '').trim();
+    final preview = notes.isEmpty
+        ? 'A new version is available.'
+        : notes.split('\n').take(4).join('\n');
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Update available'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Current: v${result.currentVersion}'),
+              Text('Latest: ${result.releaseTag}'),
+              const SizedBox(height: 12),
+              Text(preview),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                await saveDismissedUpdateVersion(result.latestVersion);
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop();
+                }
+              },
+              child: const Text('Later'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                await saveDismissedUpdateVersion(null);
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop();
+                }
+                if (Platform.isMacOS) {
+                  try {
+                    await NativeBridge.instance.checkForNativeUpdates();
+                    return;
+                  } catch (_) {}
+                }
+                final target = result.downloadUrl ?? result.releasePageUrl;
+                if (target != null) {
+                  await launchUrl(Uri.parse(target));
+                }
+              },
+              child: const Text('Update now'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -341,10 +460,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             Padding(
               padding: const EdgeInsets.only(bottom: 16),
-              child: Text(
-                'Settings',
-                style: theme.textTheme.headlineSmall,
-              ),
+              child: Text('Settings', style: theme.textTheme.headlineSmall),
             ),
             _Section(
               title: 'Output',
@@ -355,10 +471,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Gen Z Mode',
-                          style: theme.textTheme.titleSmall,
-                        ),
+                        Text('Gen Z Mode', style: theme.textTheme.titleSmall),
                         const SizedBox(height: 2),
                         Text(
                           'Rewrite output in Gen Z slang—humorous and relatable',
@@ -369,9 +482,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ],
                     ),
                   ),
+                  Switch(value: _genZEnabled, onChanged: _saveGenZ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            _Section(
+              title: 'Text Expansion',
+              icon: Symbols.short_text,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Phrase Expansion',
+                          style: theme.textTheme.titleSmall,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Replace aliases like "my email" with saved user info and dictionary corrections.',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   Switch(
-                    value: _genZEnabled,
-                    onChanged: _saveGenZ,
+                    value: _phraseExpansionEnabled,
+                    onChanged: _savePhraseExpansion,
                   ),
                 ],
               ),
@@ -408,7 +549,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ),
                               onPressed: () {
                                 setState(
-                                    () => _apiKeyObscured = !_apiKeyObscured);
+                                  () => _apiKeyObscured = !_apiKeyObscured,
+                                );
                               },
                             ),
                           ),
@@ -507,6 +649,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
             ),
+            const SizedBox(height: 16),
+            Center(
+              child: Column(
+                children: [
+                  Text(
+                    'Version $_appVersion',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.7,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  TextButton.icon(
+                    onPressed: _isCheckingUpdates
+                        ? null
+                        : _checkForUpdatesManually,
+                    icon: _isCheckingUpdates
+                        ? const SizedBox(
+                            height: 14,
+                            width: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Symbols.system_update_alt, size: 18),
+                    label: Text(
+                      _isCheckingUpdates ? 'Checking...' : 'Check for updates',
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         );
       },
@@ -560,10 +733,7 @@ class _HotkeyRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 16),
-        Switch(
-          value: enabled,
-          onChanged: onToggleEnabled,
-        ),
+        Switch(value: enabled, onChanged: onToggleEnabled),
         const SizedBox(width: 8),
         // Key-like display (replication of actual button)
         Container(
@@ -613,9 +783,7 @@ class _HotkeyRow extends StatelessWidget {
           onPressed: isCapturing ? null : onEdit,
           icon: const Icon(Symbols.edit, size: 18),
           tooltip: 'Change hotkey',
-          style: IconButton.styleFrom(
-            minimumSize: const Size(44, 44),
-          ),
+          style: IconButton.styleFrom(minimumSize: const Size(44, 44)),
         ),
       ],
     );
@@ -672,9 +840,7 @@ class _Section extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -688,10 +854,7 @@ class _Section extends StatelessWidget {
                   color: Theme.of(context).colorScheme.primary,
                 ),
                 const SizedBox(width: 12),
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
+                Text(title, style: Theme.of(context).textTheme.titleMedium),
               ],
             ),
             const SizedBox(height: 16),

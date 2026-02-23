@@ -17,6 +17,8 @@ const _hotkeyHoldFlagsKey = 'hotkey_hold_flags';
 const _hotkeyStartEnabledKey = 'hotkey_start_enabled';
 const _hotkeyStopEnabledKey = 'hotkey_stop_enabled';
 const _hotkeyHoldEnabledKey = 'hotkey_hold_enabled';
+const _phraseExpansionEnabledKey = 'phrase_expansion_enabled';
+const _dismissedUpdateVersionKey = 'dismissed_update_version';
 
 /// Hotkey configuration for global shortcuts.
 class HotkeyConfig {
@@ -197,6 +199,46 @@ Future<void> saveGenZEnabled(bool value) async {
   try {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_genZEnabledKey, value);
+  } catch (_) {}
+}
+
+/// Whether phrase expansion is enabled (aliases and dictionary corrections).
+Future<bool> loadPhraseExpansionEnabled() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_phraseExpansionEnabledKey) ?? true;
+  } catch (_) {
+    return true;
+  }
+}
+
+/// Saves phrase expansion toggle.
+Future<void> savePhraseExpansionEnabled(bool value) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_phraseExpansionEnabledKey, value);
+  } catch (_) {}
+}
+
+/// Version string of the last update prompt dismissed with "Later".
+Future<String?> loadDismissedUpdateVersion() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_dismissedUpdateVersionKey);
+  } catch (_) {
+    return null;
+  }
+}
+
+/// Stores or clears the last dismissed update version.
+Future<void> saveDismissedUpdateVersion(String? version) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    if (version == null || version.isEmpty) {
+      await prefs.remove(_dismissedUpdateVersionKey);
+    } else {
+      await prefs.setString(_dismissedUpdateVersionKey, version);
+    }
   } catch (_) {}
 }
 

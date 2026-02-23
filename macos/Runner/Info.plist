@@ -35,5 +35,11 @@
 		<string>x-apple.systempreferences</string>
 		<string>x-apple.systemsettings</string>
 	</array>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUFeedURL</key>
+	<string>https://github.com/Matinrahimik/open_yapper/releases/latest/download/appcast.xml</string>
+	<key>SUAllowsAutomaticUpdates</key>
+	<true/>
 </dict>
 </plist>

@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
+import '../services/native_bridge.dart';
 import '../services/recording_history_service.dart';
 
 /// Groups entries by day and hour for sectioned display.
@@ -30,10 +33,38 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
+  final Map<String, ImageProvider> _appIcons = {};
+
   @override
   void initState() {
     super.initState();
     widget.historyService.loadEntries();
+    _loadInstalledAppIcons();
+  }
+
+  Future<void> _loadInstalledAppIcons() async {
+    try {
+      final apps = await NativeBridge.instance.getInstalledApps();
+      final icons = <String, ImageProvider>{};
+      for (final app in apps) {
+        final name = app['name'] as String? ?? '';
+        final iconBase64 = app['iconBase64'] as String? ?? '';
+        if (name.isEmpty || iconBase64.isEmpty) continue;
+        try {
+          icons[name] = MemoryImage(base64Decode(iconBase64));
+        } catch (_) {
+          // Ignore broken icon payloads.
+        }
+      }
+      if (!mounted) return;
+      setState(() {
+        _appIcons
+          ..clear()
+          ..addAll(icons);
+      });
+    } catch (_) {
+      // Ignore native errors; app names still render without icons.
+    }
   }
 
   void _copyText(String text) {
@@ -280,6 +311,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       ...section.entries.map((entry) => _HistoryCard(
                             entry: entry,
                             formatTime: _formatTime,
+                            appIcon: _appIcons[entry.targetApp],
                             onCopy: _copyText,
                             onDelete: _deleteRecording,
                           )),
@@ -301,12 +333,14 @@ class _HistoryCard extends StatelessWidget {
   const _HistoryCard({
     required this.entry,
     required this.formatTime,
+    this.appIcon,
     required this.onCopy,
     required this.onDelete,
   });
 
   final RecordingEntry entry;
   final String Function(DateTime) formatTime;
+  final ImageProvider? appIcon;
   final void Function(String) onCopy;
   final void Function(RecordingEntry) onDelete;
 
@@ -316,6 +350,14 @@ class _HistoryCard extends StatelessWidget {
         ? entry.displayText
         : (entry.transcription ?? 'No text');
     final canCopy = text.isNotEmpty;
+    final appName = (entry.targetApp?.trim().isNotEmpty ?? false)
+        ? entry.targetApp!.trim()
+        : 'Unknown app';
+    final charCount = text.characters.length;
+    final duration = entry.durationSeconds ?? 0;
+    final durationLabel = duration >= 10
+        ? '${duration.toStringAsFixed(1)}s'
+        : '${duration.toStringAsFixed(2)}s';
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -358,19 +400,73 @@ class _HistoryCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainer,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    formatTime(entry.recordedAt),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurfaceVariant,
+                Row(
+                  children: [
+                    _HistoryInfoPill(
+                      child: Text(
+                        formatTime(entry.recordedAt),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      fit: FlexFit.loose,
+                      child: _HistoryInfoPill(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (appIcon != null)
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: Image(
+                                  image: appIcon!,
+                                  width: 14,
+                                  height: 14,
+                                  fit: BoxFit.cover,
+                                ),
+                              )
+                            else
+                              Icon(
+                                Symbols.apps,
+                                size: 14,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              fit: FlexFit.loose,
+                              child: Text(
+                                appName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                    ),
+                              ),
+                            ),
+                          ],
                         ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: _HistoryInfoPill(
+                    child: Text(
+                      '$durationLabel • $charCount chars',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                    ),
                   ),
                 ),
               ],
@@ -378,6 +474,24 @@ class _HistoryCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _HistoryInfoPill extends StatelessWidget {
+  const _HistoryInfoPill({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: child,
     );
   }
 }

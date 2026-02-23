@@ -2,29 +2,39 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:audioplayers/audioplayers.dart';
+import 'package:characters/characters.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
 import 'gemini_service.dart';
 import 'native_bridge.dart';
+import 'phrase_expansion_service.dart';
 import 'prompt_builder.dart';
+import 'dictionary_service.dart';
 import 'recording_history_service.dart';
 import 'settings_storage.dart';
+import 'user_profile_service.dart';
 
 /// Service that manages voice recording, Gemini processing, and paste.
 class RecordingService extends ChangeNotifier {
   RecordingService({
     RecordingHistoryService? historyService,
+    DictionaryService? dictionaryService,
+    UserProfileService? userProfileService,
     Future<String?> Function()? loadApiKey,
     Future<String> Function()? loadModel,
-  })  : _historyService = historyService,
-        _loadApiKey = loadApiKey ?? (() async => null),
-        _loadModel = loadModel ?? (() async => 'gemini-flash-lite-latest') {
+  }) : _historyService = historyService,
+       _dictionaryService = dictionaryService,
+       _userProfileService = userProfileService,
+       _loadApiKey = loadApiKey ?? (() async => null),
+       _loadModel = loadModel ?? (() async => 'gemini-flash-lite-latest') {
     _init();
   }
 
   final RecordingHistoryService? _historyService;
+  final DictionaryService? _dictionaryService;
+  final UserProfileService? _userProfileService;
   final Future<String?> Function() _loadApiKey;
   final Future<String> Function() _loadModel;
 
@@ -153,11 +163,11 @@ class RecordingService extends ChangeNotifier {
       _amplitudeSub = _recorder
           .onAmplitudeChanged(const Duration(milliseconds: 50))
           .listen((amp) {
-        final normalized = ((amp.current + 50) / 50).clamp(0.0, 1.0);
-        _currentAudioLevel = normalized;
-        _native.updateOverlayLevel(normalized);
-        notifyListeners();
-      });
+            final normalized = ((amp.current + 50) / 50).clamp(0.0, 1.0);
+            _currentAudioLevel = normalized;
+            _native.updateOverlayLevel(normalized);
+            notifyListeners();
+          });
 
       _durationTimer = Timer.periodic(const Duration(milliseconds: 100), (t) {
         _recordingDuration += 0.1;
@@ -231,6 +241,19 @@ class RecordingService extends ChangeNotifier {
         audioFilePath: path,
         systemPrompt: systemPrompt,
       );
+      final profile =
+          await _userProfileService?.loadProfile() ?? UserProfile.empty;
+      final dictionaryService = _dictionaryService;
+      if (dictionaryService != null && !dictionaryService.isLoaded) {
+        await dictionaryService.loadEntries();
+      }
+      final expansionEnabled = await loadPhraseExpansionEnabled();
+      final expandedResponse = PhraseExpansionService.expandText(
+        text: response,
+        profile: profile,
+        dictionaryEntries: dictionaryService?.entries ?? const [],
+        enabled: expansionEnabled,
+      );
 
       if (_isStaleProcessing(processingGeneration)) {
         _isProcessing = false;
@@ -241,7 +264,7 @@ class RecordingService extends ChangeNotifier {
         return;
       }
 
-      await _native.pasteText(response, restoreClipboard: true);
+      await _native.pasteText(expandedResponse, restoreClipboard: true);
 
       if (_isStaleProcessing(processingGeneration)) {
         _isProcessing = false;
@@ -258,7 +281,7 @@ class RecordingService extends ChangeNotifier {
 
       if (_historyService != null) {
         final entry = await _historyService.addTextEntry(
-          response: response,
+          response: expandedResponse,
           targetApp: targetApp,
           model: model,
           durationSeconds: duration,
@@ -268,7 +291,15 @@ class RecordingService extends ChangeNotifier {
         }
       }
 
-      await _native.updateOverlayState('success');
+      if (dictionaryService != null) {
+        unawaited(dictionaryService.ingestObservedText(expandedResponse));
+      }
+
+      await _native.updateOverlayState(
+        'success',
+        charCount: expandedResponse.characters.length,
+        duration: duration,
+      );
 
       Future.delayed(const Duration(seconds: 2), () {
         _isPasteSuccess = false;

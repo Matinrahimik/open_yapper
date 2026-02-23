@@ -8,6 +8,11 @@ set -euo pipefail
 APP_NAME="Open Yapper"
 APP_PATH="build/macos/Build/Products/Release/${APP_NAME}.app"
 DMG_OUT="open_yapper.dmg"
+RELEASE_VERSION="$(awk -F ': ' '/^version:/{print $2}' pubspec.yaml | tr -d '\r')"
+RELEASE_VERSION_BASE="${RELEASE_VERSION%%+*}"
+RELEASE_TAG="v${RELEASE_VERSION_BASE}"
+VERSIONED_DMG_OUT="open_yapper-${RELEASE_TAG}.dmg"
+SPARKLE_ARCHIVE_OUT="open_yapper-${RELEASE_TAG}.zip"
 GITHUB_FALLBACK_URL="https://github.com/Matinrahimik/open_yapper/releases/latest/download/open_yapper.dmg"
 
 # Check env
@@ -54,11 +59,19 @@ echo "App signature OK"
 echo "Creating DMG..."
 rm -f "$DMG_OUT"
 hdiutil create -volname "Open Yapper" -srcfolder "$APP_PATH" -ov -format UDZO "$DMG_OUT"
+cp "$DMG_OUT" "$VERSIONED_DMG_OUT"
+
+# Create Sparkle archive (recommended for appcast generation)
+echo "Creating Sparkle ZIP archive..."
+rm -f "$SPARKLE_ARCHIVE_OUT"
+ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$SPARKLE_ARCHIVE_OUT"
 
 # Sign DMG (recommended so Gatekeeper can assess container cleanly)
 echo "Signing DMG..."
 codesign --force --timestamp --verbose --sign "$DEVELOPER_ID" "$DMG_OUT"
 codesign --verify --strict --verbose=2 "$DMG_OUT"
+codesign --force --timestamp --verbose --sign "$DEVELOPER_ID" "$VERSIONED_DMG_OUT"
+codesign --verify --strict --verbose=2 "$VERSIONED_DMG_OUT"
 echo "DMG signature OK"
 
 # Notarize
@@ -73,10 +86,17 @@ echo "Notarization complete. Stapling..."
 xcrun stapler staple "$DMG_OUT"
 xcrun stapler validate "$DMG_OUT"
 spctl -a -vv -t open --context context:primary-signature "$DMG_OUT"
+xcrun stapler staple "$VERSIONED_DMG_OUT"
+xcrun stapler validate "$VERSIONED_DMG_OUT"
 echo "Notarization ticket stapled and validated"
 
 echo ""
-echo "Done! Signed + notarized artifact: $DMG_OUT"
-echo "Upload this DMG to GitHub Releases or Firebase Storage."
+echo "Done! Signed + notarized artifacts:"
+echo "  - $DMG_OUT (stable website/latest link)"
+echo "  - $VERSIONED_DMG_OUT (versioned release asset)"
+echo "  - $SPARKLE_ARCHIVE_OUT (for Sparkle appcast generation)"
+echo "Use release tag: $RELEASE_TAG"
+echo "Keep pubspec.yaml version and GitHub tag aligned."
+echo "Upload artifacts to GitHub Releases."
 echo "If using Firebase Storage, set NEXT_PUBLIC_DOWNLOAD_URL to that URL."
 echo "If not set, website falls back to: $GITHUB_FALLBACK_URL"

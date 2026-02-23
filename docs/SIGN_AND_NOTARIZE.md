@@ -4,6 +4,19 @@ Follow these steps to sign the app so users won't see the malware warning.
 
 ---
 
+## Step 0: Align Version and Tag
+
+Before building, set the app version in `pubspec.yaml`:
+
+```yaml
+version: 1.0.1+1
+```
+
+- Use the same semantic version for your GitHub release tag: `v1.0.1`
+- Keep `pubspec.yaml` and tag in sync for update checks.
+
+---
+
 ## Step 1: Create Developer ID Certificate
 
 You have Apple Development certs, but you need **Developer ID Application** for distribution:
@@ -61,11 +74,28 @@ chmod +x scripts/sign-and-notarize-macos.sh
 
 ## Step 5: Upload to GitHub
 
-1. The script creates `open_yapper.dmg` in the project root
+1. The script creates:
+   - `open_yapper.dmg` (stable/latest download URL)
+   - `open_yapper-vX.Y.Z.dmg` (versioned release asset)
+   - `open_yapper-vX.Y.Z.zip` (Sparkle/appcast archive)
 2. Go to https://github.com/Matinrahimik/open_yapper/releases
-3. Edit your latest release
-4. Delete the old `open_yapper.dmg` asset
-5. Upload the new signed `open_yapper.dmg`
+3. Create/edit release with tag `vX.Y.Z`
+4. Upload the signed assets from Step 1
+5. Keep `open_yapper.dmg` as the stable asset for `releases/latest/download/open_yapper.dmg`
 6. Save
+
+---
+
+## Step 6: Sparkle Appcast (Auto-Update Feed)
+
+Sparkle uses an appcast XML feed (for example `appcast.xml`) referenced by `SUFeedURL` in `macos/Runner/Info.plist`.
+
+Recommended flow:
+
+1. Generate/update appcast from your release artifacts
+2. Publish `appcast.xml` at a stable URL
+3. Ensure each item version matches the Git tag and app version
+
+If `appcast.xml` is missing or stale, in-app update checks can still detect versions via GitHub, but one-tap native install will not be reliable.
 
 Done! New downloads will install without the malware warning.
