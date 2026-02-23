@@ -23,10 +23,7 @@ const _outputPricePer1M = 0.40;
 const _whisperFlowMonthlyPrice = 16.0;
 
 class StatsScreen extends StatefulWidget {
-  const StatsScreen({
-    super.key,
-    required this.historyService,
-  });
+  const StatsScreen({super.key, required this.historyService});
 
   final RecordingHistoryService historyService;
 
@@ -72,11 +69,14 @@ class _StatsScreenState extends State<StatsScreen> {
     final typingMinutes = totalChars / _avgTypingCharsPerMin;
     final typingSeconds = typingMinutes * 60;
     final timeSavedSeconds = typingSeconds - totalSeconds;
-    final speedMultiplier = totalSeconds > 0 ? typingSeconds / totalSeconds : 0.0;
+    final speedMultiplier = totalSeconds > 0
+        ? typingSeconds / totalSeconds
+        : 0.0;
 
     // Speaking speed: chars produced per minute of speech
-    final speakingCharsPerMin =
-        totalSeconds > 0 ? (totalChars / (totalSeconds / 60)) : 0.0;
+    final speakingCharsPerMin = totalSeconds > 0
+        ? (totalChars / (totalSeconds / 60))
+        : 0.0;
 
     // API cost estimate (all time)
     final costBreakdown = _estimateApiCost(entries);
@@ -100,10 +100,7 @@ class _StatsScreenState extends State<StatsScreen> {
       children: [
         Padding(
           padding: const EdgeInsets.only(bottom: 16),
-          child: Text(
-            'Your Stats',
-            style: theme.textTheme.headlineSmall,
-          ),
+          child: Text('Your Stats', style: theme.textTheme.headlineSmall),
         ),
         if (entries.isEmpty)
           Card(
@@ -180,7 +177,9 @@ class _StatsScreenState extends State<StatsScreen> {
               ),
               _StatRow(
                 label: 'Time saved vs typing',
-                value: _formatDuration(timeSavedSeconds.clamp(0, double.infinity)),
+                value: _formatDuration(
+                  timeSavedSeconds.clamp(0, double.infinity),
+                ),
                 subtitle: timeSavedSeconds > 0
                     ? 'You spoke ${speedMultiplier.toStringAsFixed(1)}× faster than typing'
                     : null,
@@ -195,12 +194,14 @@ class _StatsScreenState extends State<StatsScreen> {
               _StatRow(
                 label: 'Input tokens (est.)',
                 value: _formatNumber(costBreakdown.inputTokens.round()),
-                subtitle: 'System prompt + audio (~${_tokensPerAudioSecond.toStringAsFixed(0)}/sec)',
+                subtitle:
+                    'System prompt + audio (~${_tokensPerAudioSecond.toStringAsFixed(0)}/sec)',
               ),
               _StatRow(
                 label: 'Output tokens (est.)',
                 value: _formatNumber(costBreakdown.outputTokens.round()),
-                subtitle: 'Response text (~${_charsPerToken.toStringAsFixed(0)} chars/token)',
+                subtitle:
+                    'Response text (~${_charsPerToken.toStringAsFixed(0)} chars/token)',
               ),
               const Divider(height: 24),
               _StatRow(
@@ -235,13 +236,13 @@ class _StatsScreenState extends State<StatsScreen> {
                 value: monthlySavings > 0
                     ? '\$${monthlySavings.toStringAsFixed(2)}/mo'
                     : monthlySavings < 0
-                        ? '-\$${(-monthlySavings).toStringAsFixed(2)}/mo'
-                        : '\$0/mo',
+                    ? '-\$${(-monthlySavings).toStringAsFixed(2)}/mo'
+                    : '\$0/mo',
                 subtitle: monthlySavings > 0
                     ? 'You\'re spending less with pay-per-use'
                     : monthlySavings < 0
-                        ? 'Above Wispr Flow this month'
-                        : 'Break-even',
+                    ? 'Above Wispr Flow this month'
+                    : 'Break-even',
               ),
             ],
           ),
@@ -255,8 +256,14 @@ class _StatsScreenState extends State<StatsScreen> {
     return text.trim().split(RegExp(r'\s+')).length;
   }
 
-  ({int inputTokens, int outputTokens, double inputCost, double outputCost, double totalCost})
-      _estimateApiCost(List<RecordingEntry> entries) {
+  ({
+    int inputTokens,
+    int outputTokens,
+    double inputCost,
+    double outputCost,
+    double totalCost,
+  })
+  _estimateApiCost(List<RecordingEntry> entries) {
     var inputTokens = 0.0;
     var outputTokens = 0.0;
 
@@ -316,9 +323,7 @@ class _StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -332,10 +337,7 @@ class _StatCard extends StatelessWidget {
                   color: Theme.of(context).colorScheme.primary,
                 ),
                 const SizedBox(width: 12),
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
+                Text(title, style: Theme.of(context).textTheme.titleMedium),
               ],
             ),
             const SizedBox(height: 16),
@@ -348,11 +350,7 @@ class _StatCard extends StatelessWidget {
 }
 
 class _StatRow extends StatelessWidget {
-  const _StatRow({
-    required this.label,
-    required this.value,
-    this.subtitle,
-  });
+  const _StatRow({required this.label, required this.value, this.subtitle});
 
   final String label;
   final String value;
@@ -391,7 +389,9 @@ class _StatRow extends StatelessWidget {
             Text(
               subtitle!,
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                color: theme.colorScheme.onSurfaceVariant.withValues(
+                  alpha: 0.8,
+                ),
               ),
             ),
           ],

@@ -11,10 +11,7 @@ import '../services/settings_storage.dart';
 import '../widgets/pasteable_text_field.dart';
 
 class OnboardingView extends StatefulWidget {
-  const OnboardingView({
-    super.key,
-    required this.recordingService,
-  });
+  const OnboardingView({super.key, required this.recordingService});
 
   final RecordingService recordingService;
 
@@ -85,7 +82,6 @@ class _OnboardingViewState extends State<OnboardingView> {
       if (mounted) setState(() {});
     });
   }
-
 
   Future<void> _openMicrophoneSettings() async {
     const urls = [
@@ -201,12 +197,7 @@ class _OnboardingViewState extends State<OnboardingView> {
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 20,
-                  ),
-                ],
+                boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 20)],
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -219,8 +210,8 @@ class _OnboardingViewState extends State<OnboardingView> {
                   Text(
                     'Open Yapper needs two permissions to work properly.',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                   const SizedBox(height: 32),
                   _PermissionTile(
@@ -244,8 +235,8 @@ class _OnboardingViewState extends State<OnboardingView> {
                     Text(
                       'After enabling Accessibility, restart the app for it to take effect.',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                     if (Platform.isMacOS) ...[
@@ -302,12 +293,7 @@ class _ApiKeyOnboardingContent extends StatelessWidget {
           decoration: BoxDecoration(
             color: colorScheme.surface,
             borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black26,
-                blurRadius: 20,
-              ),
-            ],
+            boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 20)],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -334,10 +320,10 @@ class _ApiKeyOnboardingContent extends StatelessWidget {
               TextButton.icon(
                 onPressed: onGetKey,
                 icon: const Icon(Symbols.link, size: 18),
-                label: const Text('Get your API key at aistudio.google.com/apikey'),
-                style: TextButton.styleFrom(
-                  alignment: Alignment.centerLeft,
+                label: const Text(
+                  'Get your API key at aistudio.google.com/apikey',
                 ),
+                style: TextButton.styleFrom(alignment: Alignment.centerLeft),
               ),
               const SizedBox(height: 24),
               PasteableTextField(
@@ -365,11 +351,7 @@ class _ApiKeyOnboardingContent extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      Symbols.lock,
-                      size: 18,
-                      color: colorScheme.primary,
-                    ),
+                    Icon(Symbols.lock, size: 18, color: colorScheme.primary),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
@@ -392,8 +374,7 @@ class _ApiKeyOnboardingContent extends StatelessWidget {
                   ),
                   const SizedBox(width: 12),
                   FilledButton(
-                    onPressed: saving ||
-                            controller.text.trim().isEmpty
+                    onPressed: saving || controller.text.trim().isEmpty
                         ? null
                         : onSave,
                     child: saving
@@ -451,15 +432,12 @@ class _PermissionTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
+                Text(title, style: Theme.of(context).textTheme.titleMedium),
                 Text(
                   subtitle,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),

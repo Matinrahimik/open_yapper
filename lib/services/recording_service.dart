@@ -18,6 +18,8 @@ import 'user_profile_service.dart';
 
 /// Service that manages voice recording, Gemini processing, and paste.
 class RecordingService extends ChangeNotifier {
+  static const double _minimumProcessableDurationSeconds = 2.0;
+
   RecordingService({
     RecordingHistoryService? historyService,
     DictionaryService? dictionaryService,
@@ -189,11 +191,14 @@ class RecordingService extends ChangeNotifier {
     _durationTimer?.cancel();
     _amplitudeSub?.cancel();
 
-    if (_recordingDuration < 0.5) {
+    if (_recordingDuration < _minimumProcessableDurationSeconds) {
       final path = await _recorder.stop();
       _isRecording = false;
       await _native.setStopHotkeyEnabled(false);
       await _native.dismissRecordingOverlay();
+      _lastError =
+          'Recording too short. Please speak for at least '
+          '${_minimumProcessableDurationSeconds.toStringAsFixed(0)} seconds.';
       if (path != null) {
         try {
           await File(path).delete();
