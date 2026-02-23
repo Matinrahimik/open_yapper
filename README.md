@@ -1,8 +1,11 @@
-# Open Yapper (OY!)
+![Open Yapper Screenshot](assets/Screenshot%202026-02-22%20at%2017.34.42.png)
+
+# Open Yapper (OY!) — Cursor Hackathon 2026 Vancouver Winner
 
 ![Open Yapper - Wispr Flow Clone](assets/Readmeimage.png)
 
-**Done in 4 hours @ Cursor Hackathon** — Full app + Landing page
+**Done in 4 hours @ Cursor Hackathon** — Full app + Landing page  
+**Winner** — Cursor Hackathon 2026 (Vancouver)
 
 ---
 

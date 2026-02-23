@@ -40,7 +40,7 @@ export function Footer() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              View on GitHub
+              View Latest Updates on GitHub
               <Github className="h-5 w-5 text-[#F4F4F0]" aria-hidden />
             </motion.a>
           </div>
