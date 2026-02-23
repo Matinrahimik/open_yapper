@@ -7,6 +7,62 @@
 
 ---
 
+## Non-Technical Setup (Install It Once, Use It Anytime)
+
+If you want Open Yapper on your computer like a normal app (without opening Cursor/IDE every time), follow this:
+
+### macOS download status
+
+The macOS prebuilt download is currently unavailable on the website.
+
+### Build your own installable app from this repo (macOS)
+
+Use this if you want your own personal build from source code.
+
+1. Install Flutter once: [Flutter install guide](https://docs.flutter.dev/get-started/install/macos)
+2. Clone this repository:
+
+```bash
+git clone <repo-url>
+cd open_yapper
+```
+
+3. Run:
+
+```bash
+flutter pub get
+flutter build macos --release
+```
+
+4. When build finishes, open this folder:
+
+```bash
+build/macos/Build/Products/Release/
+```
+
+5. Drag `open_yapper.app` into **Applications**
+6. Launch from Applications from now on (no IDE needed)
+
+### First launch checklist
+
+- Allow **Microphone** permission
+- Allow **Accessibility** permission (for pasting into other apps)
+- Paste your Gemini API key in onboarding (or later in Settings)
+
+### How to update later
+
+When you want a newer version from source:
+
+```bash
+git pull
+flutter pub get
+flutter build macos --release
+```
+
+Then replace the old app in Applications with the new `open_yapper.app`.
+
+---
+
 ## What is Open Yapper?
 
 **Open Yapper** (OY!) is the GEN Z voice dictation app. It's an open-source clone of [Wispr Flow](https://wisprflow.ai/)—ramble naturally, AI cleans the mess, no cap.
@@ -33,9 +89,10 @@ Stop typing, start talking. Speak into your mic, and Open Yapper transcribes you
 
 ## Download
 
-**Get the app from [www.openyapper.com](https://www.openyapper.com)**
+**Website:** [www.openyapper.com](https://www.openyapper.com)
 
-The website hosts the landing page and download links for the latest builds. Visit to download the macOS app (and other platforms as they become available).
+The website is currently the landing page only.  
+The macOS prebuilt app is temporarily unavailable, so please clone this repository and build your own release (`flutter build macos --release`) using the guide above.
 
 ---
 

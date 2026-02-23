@@ -401,6 +401,7 @@ class _HistoryCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
                   children: [
                     _HistoryInfoPill(
                       child: Text(
@@ -455,19 +456,16 @@ class _HistoryCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: _HistoryInfoPill(
-                    child: Text(
-                      '$durationLabel • $charCount chars',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                    const SizedBox(width: 8),
+                    _HistoryInfoPill(
+                      child: Text(
+                        '$durationLabel • $charCount chars',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ],
             ),
