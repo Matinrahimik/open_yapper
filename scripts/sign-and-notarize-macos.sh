@@ -8,6 +8,7 @@ set -euo pipefail
 APP_NAME="Open Yapper"
 APP_PATH="build/macos/Build/Products/Release/${APP_NAME}.app"
 DMG_OUT="open_yapper.dmg"
+NOTARY_WAIT_MODE="${NOTARY_WAIT_MODE:-wait}" # wait | nowait
 RELEASE_VERSION="$(awk -F ': ' '/^version:/{print $2}' pubspec.yaml | tr -d '\r')"
 RELEASE_VERSION_BASE="${RELEASE_VERSION%%+*}"
 RELEASE_TAG="v${RELEASE_VERSION_BASE}"
@@ -31,6 +32,12 @@ fi
 if [[ "$DEVELOPER_ID" != Developer\ ID\ Application:* ]]; then
   echo "Error: DEVELOPER_ID must start with 'Developer ID Application:'"
   echo "Current value: $DEVELOPER_ID"
+  exit 1
+fi
+
+if [[ "$NOTARY_WAIT_MODE" != "wait" && "$NOTARY_WAIT_MODE" != "nowait" ]]; then
+  echo "Error: NOTARY_WAIT_MODE must be 'wait' or 'nowait'"
+  echo "Current value: $NOTARY_WAIT_MODE"
   exit 1
 fi
 
@@ -76,11 +83,31 @@ echo "DMG signature OK"
 
 # Notarize
 echo "Submitting for notarization..."
-xcrun notarytool submit "$DMG_OUT" \
-  --apple-id "$APPLE_ID" \
-  --password "$APP_SPECIFIC_PASSWORD" \
-  --team-id "$TEAM_ID" \
-  --wait
+if [[ "$NOTARY_WAIT_MODE" == "wait" ]]; then
+  xcrun notarytool submit "$DMG_OUT" \
+    --apple-id "$APPLE_ID" \
+    --password "$APP_SPECIFIC_PASSWORD" \
+    --team-id "$TEAM_ID" \
+    --wait
+else
+  NOTARY_OUTPUT_FILE="$(mktemp -t open_yapper_notary_submit.XXXXXX)"
+  xcrun notarytool submit "$DMG_OUT" \
+    --apple-id "$APPLE_ID" \
+    --password "$APP_SPECIFIC_PASSWORD" \
+    --team-id "$TEAM_ID" >"$NOTARY_OUTPUT_FILE"
+  cat "$NOTARY_OUTPUT_FILE"
+  SUBMISSION_ID="$(awk '/^[[:space:]]*id:/{print $2; exit}' "$NOTARY_OUTPUT_FILE")"
+
+  echo ""
+  echo "Notary submission created (async mode)."
+  echo "Submission ID: ${SUBMISSION_ID:-unknown}"
+  echo "Check status with:"
+  echo "  xcrun notarytool info ${SUBMISSION_ID:-<submission-id>} --apple-id \"\$APPLE_ID\" --password \"\$APP_SPECIFIC_PASSWORD\" --team-id \"\$TEAM_ID\""
+  echo "After status becomes Accepted, staple manually:"
+  echo "  xcrun stapler staple \"$DMG_OUT\" && xcrun stapler validate \"$DMG_OUT\""
+  echo "  xcrun stapler staple \"$VERSIONED_DMG_OUT\" && xcrun stapler validate \"$VERSIONED_DMG_OUT\""
+  exit 0
+fi
 
 echo "Notarization complete. Stapling..."
 xcrun stapler staple "$DMG_OUT"
