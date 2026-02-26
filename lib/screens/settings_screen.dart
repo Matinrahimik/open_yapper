@@ -11,8 +11,18 @@ import '../services/settings_storage.dart';
 import '../services/update_service.dart';
 import '../widgets/pasteable_text_field.dart';
 
+// macOS virtual key codes for F1-F20 (Carbon/HIToolbox values).
+const _functionKeyCodes = <int>{
+  64, 79, 80, 90, 96, 97, 98, 99, 100, 101, 103, 105, 106, 107, 109, 111, 113, 118, 120, 122,
+};
+
 /// Formats a hotkey (keyCode + modifier flags) for display.
 String formatHotkeyDisplay(int keyCode, int flags) {
+  // macOS automatically sets the fn flag on function key events even without
+  // physically pressing Fn. Strip it for display so F12 shows as "F12" not "fn F12".
+  if (_functionKeyCodes.contains(keyCode)) {
+    flags &= ~0x800000;
+  }
   // Keep macOS modifier order consistent with menu item display.
   const modifierSymbols = <int, String>{
     0x40000: '⌃', // Control

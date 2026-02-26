@@ -5,10 +5,26 @@ struct HotkeySpec {
     let keyCode: Int
     let flags: UInt64
 
+    /// macOS automatically sets maskSecondaryFn on function key events even when the user
+    /// hasn't physically pressed the Fn key (e.g. with "Use F1-F12 as standard function keys").
+    /// Strip it so F12 is treated as F12, not fn+F12.
+    static func isFunctionKeyCode(_ code: Int64) -> Bool {
+        // kVK_F1…F20 in decimal
+        let fnKeys: Set<Int64> = [64, 79, 80, 90, 96, 97, 98, 99, 100, 101, 103, 105, 106, 107, 109, 111, 113, 118, 120, 122]
+        return fnKeys.contains(code)
+    }
+
     func matches(keyCode: Int64, flags: CGEventFlags) -> Bool {
         guard keyCode == self.keyCode else { return false }
         let mask: CGEventFlags = [.maskShift, .maskControl, .maskAlternate, .maskCommand, .maskSecondaryFn]
-        return (flags.intersection(mask).rawValue) == UInt64(self.flags)
+        var effectiveFlags = flags.intersection(mask).rawValue
+        var storedFlags = UInt64(self.flags)
+        if HotkeySpec.isFunctionKeyCode(keyCode) {
+            let fnMask = CGEventFlags.maskSecondaryFn.rawValue
+            effectiveFlags &= ~fnMask
+            storedFlags &= ~fnMask
+        }
+        return effectiveFlags == storedFlags
     }
 }
 
@@ -101,7 +117,11 @@ class HotkeyManager {
         if let capture = onCaptureNextKey {
             if type == .keyDown {
                 let mask: CGEventFlags = [.maskShift, .maskControl, .maskAlternate, .maskCommand, .maskSecondaryFn]
-                let flagsValue = flags.intersection(mask).rawValue
+                var flagsValue = flags.intersection(mask).rawValue
+                // Strip fn flag for function keys — macOS sets it automatically
+                if HotkeySpec.isFunctionKeyCode(keyCode) {
+                    flagsValue &= ~CGEventFlags.maskSecondaryFn.rawValue
+                }
                 DispatchQueue.main.async { capture(Int(keyCode), flagsValue) }
                 onCaptureNextKey = nil
                 return nil
