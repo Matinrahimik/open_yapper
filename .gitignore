@@ -46,3 +46,7 @@ app.*.map.json
 
 # Local environment secrets
 open_yapper_site/.env.local
+
+# Local Sparkle tooling and generated release feed workspace
+.tools/
+.sparkle-release/

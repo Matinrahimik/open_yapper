@@ -1,7 +1,7 @@
 name: open_yapper
 description: "The GEN Z voice dictation app. Ramble naturally, AI cleans the mess—no cap. Open-source WhisperFlow alternative that transcribes speech, removes filler words, and turns your thoughts into polished text. Stop typing, start talking."
 publish_to: 'none'
-version: 1.0.1+2
+version: 1.0.2+3
 
 environment:
   sdk: ^3.10.0

@@ -36,6 +36,8 @@
 	</array>
 	<key>SUEnableAutomaticChecks</key>
 	<true/>
+	<key>SUPublicEDKey</key>
+	<string>jG1O8hj85NIhwjYJImNbzCcRUAU+mJ9AcIZPzJRo7nA=</string>
 	<key>SUFeedURL</key>
 	<string>https://github.com/Matinrahimik/open_yapper/releases/latest/download/appcast.xml</string>
 	<key>SUAllowsAutomaticUpdates</key>
