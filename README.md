@@ -21,7 +21,7 @@ Stop typing, start talking. Speak into your mic, and Open Yapper transcribes you
 - **Dictionary memory** — Manage Corrections, Frequent Terms, and Suggestions with enable/disable controls
 - **User info aliases** — Save personal fields (email, phone, links, etc.) so phrases like "my email" auto-expand
 - **Phrase expansion pipeline** — Expands user aliases + dictionary replacements before pasting
-- **Model selection** — Choose between Gemini Flash Lite Latest (default) and Gemini Flash Latest
+- **Model selection** — Choose between Gemini Flash-Lite Latest (default), Gemini Flash Latest, and Gemini 3.1 Flash Lite Preview
 - **Per-app customization** — Configure tone + advanced custom prompt per app (Default + app-specific overrides)
 - **Global hotkeys** — Configure start, stop, and hold-to-record hotkeys (all independently editable)
 - **History & stats** — Browse past recordings, copy text, and see usage stats
@@ -231,6 +231,7 @@ Open Yapper can treat spoken formatting requests as instructions and shape outpu
 - In **Settings > Model Selection**, pick your Gemini model:
   - `gemini-flash-lite-latest` (default, lower cost)
   - `gemini-flash-latest` (higher quality, higher cost)
+  - `gemini-3.1-flash-lite-preview` (latest preview model)
 - The selected model is used for all new recordings until changed
 
 ### Settings (Current)
