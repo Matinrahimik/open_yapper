@@ -23,10 +23,12 @@ const _dismissedUpdateVersionKey = 'dismissed_update_version';
 
 const geminiFlashLatestModel = 'gemini-flash-latest';
 const geminiFlashLiteLatestModel = 'gemini-flash-lite-latest';
+const gemini31FlashLitePreviewModel = 'gemini-3.1-flash-lite-preview';
 const defaultGeminiModel = geminiFlashLiteLatestModel;
 const supportedGeminiModels = <String>{
   geminiFlashLatestModel,
   geminiFlashLiteLatestModel,
+  gemini31FlashLitePreviewModel,
 };
 
 /// Hotkey configuration for global shortcuts.

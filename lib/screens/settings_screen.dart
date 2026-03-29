@@ -375,9 +375,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await saveGeminiModel(model);
     if (!mounted) return;
     setState(() => _selectedModel = model);
-    final modelLabel = model == geminiFlashLatestModel
-        ? 'Flash latest'
-        : 'Flash lite latest';
+    final modelLabel = switch (model) {
+      geminiFlashLatestModel => 'Gemini Flash Latest',
+      gemini31FlashLitePreviewModel => 'Gemini 3.1 Flash Lite Preview',
+      _ => 'Gemini Flash-Lite Latest',
+    };
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text('Model set to $modelLabel')));
@@ -627,11 +629,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     items: const [
                       DropdownMenuItem<String>(
                         value: geminiFlashLiteLatestModel,
-                        child: Text('Flash lite latest (default)'),
+                        child: Text('Gemini Flash-Lite Latest (default)'),
                       ),
                       DropdownMenuItem<String>(
                         value: geminiFlashLatestModel,
-                        child: Text('Flash latest'),
+                        child: Text('Gemini Flash Latest'),
+                      ),
+                      DropdownMenuItem<String>(
+                        value: gemini31FlashLitePreviewModel,
+                        child: Text('Gemini 3.1 Flash Lite Preview'),
                       ),
                     ],
                     onChanged: (value) {
