@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:audioplayers/audioplayers.dart';
-import 'package:characters/characters.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
@@ -270,6 +269,7 @@ class RecordingService extends ChangeNotifier {
       }
 
       await _native.pasteText(expandedResponse, restoreClipboard: true);
+      await _native.dismissRecordingOverlayImmediately();
 
       if (_isStaleProcessing(processingGeneration)) {
         _isProcessing = false;
@@ -299,12 +299,6 @@ class RecordingService extends ChangeNotifier {
       if (dictionaryService != null) {
         unawaited(dictionaryService.ingestObservedText(expandedResponse));
       }
-
-      await _native.updateOverlayState(
-        'success',
-        charCount: expandedResponse.characters.length,
-        duration: duration,
-      );
 
       Future.delayed(const Duration(seconds: 2), () {
         _isPasteSuccess = false;

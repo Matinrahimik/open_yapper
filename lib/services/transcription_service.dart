@@ -129,6 +129,7 @@ Rules:
           'temperature': 0.1,
           'maxOutputTokens': 2048,
           'responseMimeType': 'text/plain',
+          'thinkingConfig': {'thinkingBudget': 0},
         },
       };
 

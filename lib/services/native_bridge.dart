@@ -190,6 +190,10 @@ class NativeBridge {
     await _channel.invokeMethod('dismissRecordingOverlay');
   }
 
+  Future<void> dismissRecordingOverlayImmediately() async {
+    await _channel.invokeMethod('dismissRecordingOverlayImmediately');
+  }
+
   Future<void> keychainSave(String key, String value) async {
     await _channel.invokeMethod('keychainSave', {'key': key, 'value': value});
   }

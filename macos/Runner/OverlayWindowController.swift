@@ -129,7 +129,7 @@ class OverlayWindowController {
         DispatchQueue.main.async { self.pillState.duration = duration }
     }
 
-    func dismiss() {
+    func dismiss(immediately: Bool = false) {
         guard let panel else { return }
         if let monitor = escapeMonitor {
             NSEvent.removeMonitor(monitor)
@@ -138,6 +138,12 @@ class OverlayWindowController {
         if let monitor = globalEscapeMonitor {
             NSEvent.removeMonitor(monitor)
             globalEscapeMonitor = nil
+        }
+        if immediately {
+            panel.orderOut(nil)
+            panel.close()
+            self.panel = nil
+            return
         }
         NSAnimationContext.runAnimationGroup({ context in
             context.duration = 0.3

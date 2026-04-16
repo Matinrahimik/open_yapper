@@ -33,10 +33,14 @@ class PasteHelper {
         keyUp?.post(tap: .cgAnnotatedSessionEventTap)
 
         if restoreClipboard {
-            // Wait for paste to complete before restoring clipboard.
-            try? await Task.sleep(nanoseconds: 700_000_000)
-            pasteboard.clearContents()
-            pasteboard.writeObjects(savedItems)
+            let itemsToRestore = savedItems
+            // Restore the clipboard in the background so the caller can dismiss
+            // UI as soon as the paste gesture has been sent.
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 700_000_000)
+                pasteboard.clearContents()
+                pasteboard.writeObjects(itemsToRestore)
+            }
         }
     }
 }

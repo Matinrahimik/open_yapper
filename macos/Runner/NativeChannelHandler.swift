@@ -213,6 +213,10 @@ class NativeChannelHandler: NSObject {
             overlayController?.dismiss()
             result(true)
 
+        case "dismissRecordingOverlayImmediately":
+            overlayController?.dismiss(immediately: true)
+            result(true)
+
         // --- Keychain ---
         case "keychainSave":
             guard let args = call.arguments as? [String: Any],
